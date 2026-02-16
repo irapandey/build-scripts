@@ -22,7 +22,7 @@ set -e
 # Variables
 PACKAGE_NAME=pytorch
 PACKAGE_URL=https://github.com/pytorch/pytorch.git
-PACKAGE_VERSION=${1:-v2.6.0}
+PACKAGE_VERSION=${1:-v2.10.0}
 PACKAGE_DIR=pytorch
 SCRIPT_DIR=$(pwd)
 
