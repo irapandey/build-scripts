@@ -22,14 +22,14 @@ set -e
 # Variables
 PACKAGE_NAME=pytorch
 PACKAGE_URL=https://github.com/pytorch/pytorch.git
-PACKAGE_VERSION=${1:-v2.6.0}
+PACKAGE_VERSION=${1:-v2.11.0}
 PACKAGE_DIR=pytorch
 SCRIPT_DIR=$(pwd)
 
 yum install -y git make wget python3.12 python3.12-devel python3.12-pip pkgconfig atlas
 yum install gcc-toolset-13 -y
 echo "Installed gcc-toolset"
-yum install -y make libtool  xz zlib-devel openssl-devel bzip2-devel libffi-devel libevent-devel  patch ninja-build gcc-toolset-13 pkg-config pkgconf-pkg-config
+yum install -y make libtool  xz zlib-devel openssl-devel bzip2-devel libffi-devel libevent-devel  patch gcc-toolset-13 pkg-config pkgconf-pkg-config
 dnf install -y gcc-toolset-13-libatomic-devel
 echo "Installed required deps from RH"
 
@@ -40,14 +40,7 @@ export LD_LIBRARY_PATH=/opt/rh/gcc-toolset-13/root/usr/lib64:$LD_LIBRARY_PATH
 export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 echo "Installing cmake..."
-wget https://cmake.org/files/v3.31/cmake-3.31.6.tar.gz
-tar -zxvf cmake-3.31.6.tar.gz
-cd cmake-3.31.6
-./bootstrap
-echo "Building Cmake"
-make
-echo "Installing Cmake"
-make install
+yum install -y cmake
 cd $SCRIPT_DIR
 
 echo "---------------------openblas installing---------------------"
@@ -55,142 +48,32 @@ echo "---------------------openblas installing---------------------"
 #install openblas
 #clone and install openblas from source
 
-git clone https://github.com/OpenMathLib/OpenBLAS
-cd OpenBLAS
-git checkout v0.3.29
-git submodule update --init
+#install openblas
+python3.12 -m pip install openblas==0.3.29+ppc64le1 \
+  --prefer-binary \
+  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
 
-# Set build options
-declare -a build_opts
-# Fix ctest not automatically discovering tests
-LDFLAGS=$(echo "${LDFLAGS}" | sed "s/-Wl,--gc-sections//g")
-export CF="${CFLAGS} -Wno-unused-parameter -Wno-old-style-declaration"
-unset CFLAGS
-export USE_OPENMP=1
-build_opts+=(USE_OPENMP=${USE_OPENMP})
-export PREFIX=${PREFIX}
-
-# Handle Fortran flags
-if [ ! -z "$FFLAGS" ]; then
-    export FFLAGS="${FFLAGS/-fopenmp/ }"
-    export FFLAGS="${FFLAGS} -frecursive"
-    export LAPACK_FFLAGS="${FFLAGS}"
-fi
-export PLATFORM=$(uname -m)
-build_opts+=(BINARY="64")
-build_opts+=(DYNAMIC_ARCH=1)
-build_opts+=(TARGET="POWER9")
-BUILD_BFLOAT16=1
-
-# Placeholder for future builds that may include ILP64 variants.
-build_opts+=(INTERFACE64=0)
-build_opts+=(SYMBOLSUFFIX="")
-
-# Build LAPACK
-build_opts+=(NO_LAPACK=0)
-
-# Enable threading and set the number of threads
-build_opts+=(USE_THREAD=1)
-build_opts+=(NUM_THREADS=8)
-
-# Disable CPU/memory affinity handling to avoid problems with NumPy and R
-build_opts+=(NO_AFFINITY=1)
-
-echo "Building OpenBLAS"
-make -j8 ${build_opts[@]} CFLAGS="${CF}" FFLAGS="${FFLAGS}" prefix=${PREFIX}
-
-echo "Install OpenBLAS"
-CFLAGS="${CF}" FFLAGS="${FFLAGS}" make install PREFIX="${PREFIX}" ${build_opts[@]}
-OpenBLASInstallPATH=$(pwd)/$PREFIX
-OpenBLASConfigFile=$(find . -name OpenBLASConfig.cmake)
-OpenBLASPCFile=$(find . -name openblas.pc)
-export LD_LIBRARY_PATH="$OpenBLASInstallPATH/lib":${LD_LIBRARY_PATH}
-export PKG_CONFIG_PATH="$OpenBLASInstallPATH/lib/pkgconfig:${PKG_CONFIG_PATH}"
-export LD_LIBRARY_PATH=${PREFIX}/lib:$LD_LIBRARY_PATH
-export PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH
-pkg-config --modversion openblas
-cd $SCRIPT_DIR
 echo "--------------------openblas installed-------------------------------"
 
-#Building scipy
-python3.12 -m pip install beniget==0.4.2.post1  Cython==3.0.11 gast==0.6.0 meson==1.6.0 meson-python==0.17.1 numpy==2.0.2 packaging pybind11 pyproject-metadata
-echo "Installed required deps from pypi"
-python3.12 -m pip install pythran==0.17.0 setuptools==75.3.0 pooch pytest build wheel hypothesis ninja patchelf>=0.11.0
-echo "Installed required deps from pypi"
-git clone https://github.com/scipy/scipy
-cd scipy/
-git checkout v1.15.2
-git submodule update --init
-echo "instaling scipy......."
-python3.12 -m pip install .
+python3.12 -m pip install scipy==1.17.0+ppc64le1 \
+  --prefer-binary \
+  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+
 cd $SCRIPT_DIR
 echo "--------------------scipy installed-------------------------------"
 
-#cloning abseil-cpp
- ABSEIL_VERSION=20240116.2
- ABSEIL_URL="https://github.com/abseil/abseil-cpp"
-
- git clone $ABSEIL_URL -b $ABSEIL_VERSION
-
- echo "------------abseil-cpp cloned--------------"
-
+# Ensure local abseil-cpp source exists for protobuf third_party injection.
+if [ ! -d "$SCRIPT_DIR/abseil-cpp" ]; then
+  git clone --depth 1 --branch 20240116.2 https://github.com/abseil/abseil-cpp.git "$SCRIPT_DIR/abseil-cpp"
+fi
 #building libprotobuf
-export C_COMPILER=$(which gcc)
-export CXX_COMPILER=$(which g++)
+python3.12 -m pip install protobuf==4.25.8+ppc64le1 \
+  --prefer-binary \
+  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
 
-git clone https://github.com/protocolbuffers/protobuf
-cd protobuf
-git checkout v4.25.8
-
-LIBPROTO_DIR=$(pwd)
-mkdir -p $LIBPROTO_DIR/local/libprotobuf
-LIBPROTO_INSTALL=$LIBPROTO_DIR/local/libprotobuf
-
-git submodule update --init --recursive
-rm -rf ./third_party/googletest | true
-rm -rf ./third_party/abseil-cpp | true
-
-cp -r $SCRIPT_DIR/abseil-cpp ./third_party/
-
-mkdir build
-cd build
-
-echo "Building libprotobuf"
-cmake -G "Ninja" \
-   ${CMAKE_ARGS} \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_C_COMPILER=$C_COMPILER \
-    -DCMAKE_CXX_COMPILER=$CXX_COMPILER \
-    -DCMAKE_INSTALL_PREFIX=$LIBPROTO_INSTALL \
-    -Dprotobuf_BUILD_TESTS=OFF \
-    -Dprotobuf_BUILD_LIBUPB=OFF \
-    -Dprotobuf_BUILD_SHARED_LIBS=ON \
-    -Dprotobuf_ABSL_PROVIDER="module" \
-    -Dprotobuf_JSONCPP_PROVIDER="package" \
-    -Dprotobuf_USE_EXTERNAL_GTEST=OFF \
-    ..
-echo "building libprotobuf...."
-cmake --build . --verbose
-echo "Installing libprotobuf...."
-cmake --install .
-
-cd ..
-
-echo "Building protobuf"
-export PROTOC=$LIBPROTO_DIR/build/protoc
-export LD_LIBRARY_PATH=$SCRIPT_DIR/abseil-cpp/abseilcpp/lib:$(pwd)/build/libprotobuf.so:$LD_LIBRARY_PATH
-export LIBRARY_PATH=$(pwd)/build/libprotobuf.so:$LD_LIBRARY_PATH
-export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
-export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
-
-#Apply patch
-wget https://raw.githubusercontent.com/ppc64le/build-scripts/refs/heads/master/p/protobuf/set_cpp_to_17_v4.25.3.patch
-git apply set_cpp_to_17_v4.25.3.patch
-
-echo "Installing protobuf...."
-cd python
-python3.12 -m pip install --no-build-isolation .
+python3.12 -m pip install libprotobuf==28.0+ppc64le1 \
+  --prefer-binary \
+  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
 cd $SCRIPT_DIR
 
 echo "------------ libprotobuf,protobuf installed--------------"
@@ -213,12 +96,17 @@ wget -q --spider "$PATCH_URL" && wget -q "$PATCH_URL" && git apply "$PATCH_FILE"
 
 ARCH=`uname -p`
 BUILD_NUM="1"
-export OPENBLAS_INCLUDE=/OpenBLAS/local/openblas/include/
-export OpenBLAS_HOME="/usr/include/openblas"
+export OpenBLAS_HOME=/usr/local/lib/python3.12/site-packages/openblas
+export OPENBLAS_INCLUDE=/usr/local/lib/python3.12/site-packages/openblas/include
 export build_type="cpu"
 export cpu_opt_arch="power9"
 export cpu_opt_tune="power10"
 export CPU_COUNT=$(nproc --all)
+MEM_GB=$(awk '/MemTotal/ {print int($2/1024/1024)}' /proc/meminfo)
+MEM_BASED_JOBS=$(( MEM_GB > 0 ? MEM_GB / 3 : 2 ))
+if (( MEM_BASED_JOBS < 2 )); then MEM_BASED_JOBS=2; fi
+if (( MEM_BASED_JOBS > CPU_COUNT )); then MEM_BASED_JOBS=$CPU_COUNT; fi
+export MAX_JOBS=${MAX_JOBS:-$MEM_BASED_JOBS}
 export CXXFLAGS="${CXXFLAGS} -D__STDC_FORMAT_MACROS"
 export LDFLAGS="$(echo ${LDFLAGS} | sed -e 's/-Wl\,--as-needed//')"
 export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${LIBPROTO_INSTALL}/lib64 -Wl,-rpath-link,${OpenBLASInstallPATH}/lib"
@@ -267,7 +155,8 @@ python3.12 -m pip install -r requirements.txt
 echo "Installed requirement files from source"
 
 echo "Installing pytorch...."
-if ! (MAX_JOBS=$(nproc) python3.12 setup.py install);then
+echo "Using MAX_JOBS=${MAX_JOBS} to reduce compiler memory pressure during PyTorch build"
+if ! (MAX_JOBS=${MAX_JOBS} python3.12 setup.py install);then
     echo "------------------$PACKAGE_NAME:Install_fails-------------------------------------"
     echo "$PACKAGE_URL $PACKAGE_NAME"
     echo "$PACKAGE_NAME  |  $PACKAGE_URL | $PACKAGE_VERSION | GitHub | Fail |  Install_Fails"
@@ -278,7 +167,7 @@ fi
 
 echo " Basic Import test for torch"
 cd ..
-export LD_LIBRARY_PATH="/OpenBLAS/:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH=/usr/local/lib/python3.12/site-packages/openblas/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=/lib:$LD_LIBRARY_PATH
 
 if ! (python3.12 -c "import torch;"); then

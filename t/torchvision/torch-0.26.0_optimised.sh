@@ -25,14 +25,20 @@ PACKAGE_NAME=vision
 PACKAGE_VERSION=${1:-v0.26.0}
 PACKAGE_URL=https://github.com/pytorch/vision.git
 OS_NAME=$(cat /etc/os-release | grep ^PRETTY_NAME | cut -d= -f2)
-MAX_JOBS=${MAX_JOBS:-$(nproc)}
+CPU_CORES=$(nproc)
+MEM_GB=$(awk '/MemTotal/ {print int($2/1024/1024)}' /proc/meminfo)
+# Torch C++ translation units are memory-heavy; cap concurrency to avoid OOM kills.
+MEM_BASED_JOBS=$(( MEM_GB > 0 ? MEM_GB / 3 : 2 ))
+if (( MEM_BASED_JOBS < 2 )); then MEM_BASED_JOBS=2; fi
+if (( MEM_BASED_JOBS > CPU_CORES )); then MEM_BASED_JOBS=$CPU_CORES; fi
+MAX_JOBS=${MAX_JOBS:-$MEM_BASED_JOBS}
 VERSION=${PACKAGE_VERSION#v}
 PYTHON_VERSION=${2:-3.12}
 PYTORCH_VERSION=${3:-v2.11.0}
 
 CURRENT_DIR=$(pwd)
 
-yum install -y git make wget python$PYTHON_VERSION python$PYTHON_VERSION-devel python$PYTHON_VERSION-pip pkgconfig atlas libjpeg-devel openblas-devel
+yum install -y git make wget gcc gcc-c++ python$PYTHON_VERSION python$PYTHON_VERSION-devel python$PYTHON_VERSION-pip pkgconfig atlas libjpeg-devel openblas-devel
 yum install gcc-toolset-13 -y
 yum install -y make libtool  xz zlib-devel openssl-devel bzip2-devel libffi-devel libevent-devel  patch ninja-build gcc-toolset-13  pkg-config  gmp-devel  freetype-devel
 
@@ -54,6 +60,10 @@ EOF
 )
 
 dnf install -y gcc-toolset-13-libatomic-devel
+
+# Fail fast with clear diagnostics if system C/C++ toolchain is unavailable.
+command -v gcc >/dev/null 2>&1 || { echo "gcc is required but not installed"; exit 1; }
+command -v g++ >/dev/null 2>&1 || { echo "g++ is required but not installed (install gcc-c++)"; exit 1; }
 
 export PATH="$PATH:/opt/rh/gcc-toolset-13/root/usr/bin"
 export LD_LIBRARY_PATH="/opt/rh/gcc-toolset-13/root/usr/lib64:/opt/rh/gcc-toolset-13/root/usr/lib:${LD_LIBRARY_PATH:-}"
@@ -165,87 +175,12 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y
 source "$HOME/.cargo/env"
 
 echo "--------------------------Installing pytorch------------------------------------------"
-git clone https://github.com/pytorch/pytorch.git
-cd pytorch
-git checkout $PYTORCH_VERSION
-git submodule sync
-git submodule update --init --recursive
+# 2.11.0+ppc64le1/
+python3 -m pip install torch=2.11.0+ppc64le1 \
+  --prefer-binary \
+  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
 
-ver=${PYTORCH_VERSION#v}
 
-PATCH_URL="https://raw.githubusercontent.com/ppc64le/build-scripts/refs/heads/master/p/pytorch/pytorch_${PYTORCH_VERSION}.patch"
-PATCH_FILE="pytorch_${PYTORCH_VERSION}.patch"
-
-# Using patch file v2.9.1 for PACKAGE_VERSION >= v2.9.1 (eg: v2.10.0, v2.11.0).
-# If a new patch is added eg: v2.9.1 patch is not working with v2.15.1,
-# please add a similar condition below for v2.15.1.
-if [[ "$(printf '%s\n' "$ver" "2.9.1" | sort -V | tail -n1)" == "$ver" ]]; then
-    PATCH_URL="https://raw.githubusercontent.com/ppc64le/build-scripts/refs/heads/master/p/pytorch/pytorch_v2.9.1.patch"
-    PATCH_FILE="pytorch_v2.9.1.patch"
-fi
-wget -q --spider "$PATCH_URL" && wget -q "$PATCH_URL" && git apply "$PATCH_FILE"
-
-ARCH=`uname -p`
-BUILD_NUM="1"
-export OPENBLAS_INCLUDE="/usr/include/openblas"
-OPENBLAS_LIB_DIR="$(pkg-config --variable=libdir openblas 2>/dev/null || echo /usr/lib64)"
-export LD_LIBRARY_PATH="${OPENBLAS_LIB_DIR}:${LD_LIBRARY_PATH:-}"
-export OpenBLAS_HOME="/usr/include/openblas"
-export ppc_arch="p9"
-export build_type="cpu"
-export cpu_opt_arch="power9"
-export cpu_opt_tune="power10"
-export CPU_COUNT=$(nproc --all)
-export CXXFLAGS="${CXXFLAGS:-} -D__STDC_FORMAT_MACROS"
-export LDFLAGS="$(echo "${LDFLAGS:-}" | sed -e 's/-Wl\,--as-needed//')"
-if [[ -n "${VIRTUAL_ENV:-}" ]]; then
-  export LDFLAGS="${LDFLAGS:-} -Wl,-rpath-link,${VIRTUAL_ENV}/lib"
-fi
-export CXXFLAGS="${CXXFLAGS:-} -fplt"
-export CFLAGS="${CFLAGS:-} -fplt"
-export BLAS=OpenBLAS
-export USE_FBGEMM=0
-export USE_SYSTEM_NCCL=1
-export USE_MKLDNN=0
-export USE_NNPACK=0
-export USE_QNNPACK=0
-export USE_XNNPACK=0
-export USE_PYTORCH_QNNPACK=0
-export TH_BINARY_BUILD=1
-export USE_LMDB=1
-export USE_LEVELDB=1
-export USE_NINJA=0
-export USE_MPI=0
-export USE_OPENMP=1
-export USE_TBB=0
-export BUILD_CUSTOM_PROTOBUF=OFF
-export BUILD_CAFFE2=1
-export PYTORCH_BUILD_VERSION=${PYTORCH_VERSION#v}
-export PYTORCH_BUILD_NUMBER=${BUILD_NUM}
-export USE_CUDA=0
-export USE_CUDNN=0
-export USE_TENSORRT=0
-export Protobuf_INCLUDE_DIR=${LIBPROTO_INSTALL}/include
-export Protobuf_LIBRARIES=${LIBPROTO_INSTALL}/lib64
-export Protobuf_LIBRARY=${LIBPROTO_INSTALL}/lib64/libprotobuf.so
-export Protobuf_LITE_LIBRARY=${LIBPROTO_INSTALL}/lib64/libprotobuf-lite.so
-export Protobuf_PROTOC_EXECUTABLE=${LIBPROTO_INSTALL}/bin/protoc
-export LD_LIBRARY_PATH="$CURRENT_DIR/pytorch/torch/lib64:${LD_LIBRARY_PATH}"
-export LD_LIBRARY_PATH="$CURRENT_DIR/pytorch/build/lib:${LD_LIBRARY_PATH}"
-export PATH="$CURRENT_DIR/protobuf/local/libprotobuf/bin:${PATH}"
-export LD_LIBRARY_PATH="$CURRENT_DIR/protobuf/local/libprotobuf/lib64:${LD_LIBRARY_PATH}"
-export LD_LIBRARY_PATH="$CURRENT_DIR/protobuf/third_party/abseil-cpp/local/abseilcpp/lib:${LD_LIBRARY_PATH}"
-# Build python requirements with system linker path to avoid gcc-toolset ld/libctf mismatch
-# seen while compiling psutil/lintrunner wheels on UBI.
-SYSTEM_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-FILTERED_REQ_FILE="$CURRENT_DIR/pytorch/requirements-no-lint.txt"
-awk 'tolower($0) !~ /^psutil([<=> ].*)?$/ && tolower($0) !~ /^lintrunner([<=> ].*)?$/' requirements.txt > "$FILTERED_REQ_FILE"
-PATH="$SYSTEM_PATH" CC=/usr/bin/gcc CXX=/usr/bin/g++ LDSHARED="/usr/bin/gcc -shared" python3 -m pip install -r "$FILTERED_REQ_FILE"
-
-echo "----------Installing pytorch------------"
-PATH="$SYSTEM_PATH" CC=/usr/bin/gcc CXX=/usr/bin/g++ LD=/usr/bin/ld LDSHARED="/usr/bin/gcc -shared" CMAKE_C_COMPILER=/usr/bin/gcc CMAKE_CXX_COMPILER=/usr/bin/g++ MAX_JOBS=$(nproc) python3 setup.py install
-PATH="$SYSTEM_PATH" CC=/usr/bin/gcc CXX=/usr/bin/g++ LD=/usr/bin/ld LDSHARED="/usr/bin/gcc -shared" CMAKE_C_COMPILER=/usr/bin/gcc CMAKE_CXX_COMPILER=/usr/bin/g++ MAX_JOBS=$(nproc) python3 setup.py bdist_wheel
-cd $CURRENT_DIR
 
 echo "--------------------------------- Installing Opus ---------------------------------"
 
@@ -321,8 +256,34 @@ fi
 
 git submodule update --init
 
-export CFLAGS="${CFLAGS:-} -I/install-deps/ffmpeg/include"
-export LDFLAGS="${LDFLAGS:-} -L/install-deps/ffmpeg/lib"
+# Find where FFmpeg was actually installed by the pip wheel
+FFMPEG_PREFIX=$(python3 -c "import sysconfig; print(sysconfig.get_path('data'))")/install-deps/ffmpeg
+
+# Set PKG_CONFIG_PATH to find FFmpeg .pc files - check both lib and lib64
+if [ -d "${FFMPEG_PREFIX}/lib64/pkgconfig" ]; then
+    export PKG_CONFIG_PATH="${FFMPEG_PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
+    export LDFLAGS="${LDFLAGS:-} -L${FFMPEG_PREFIX}/lib64"
+elif [ -d "${FFMPEG_PREFIX}/lib/pkgconfig" ]; then
+    export PKG_CONFIG_PATH="${FFMPEG_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+    export LDFLAGS="${LDFLAGS:-} -L${FFMPEG_PREFIX}/lib"
+fi
+
+export CFLAGS="${CFLAGS:-} -I${FFMPEG_PREFIX}/include"
+
+# Verify pkg-config can find FFmpeg libraries
+if ! pkg-config --exists libavformat; then
+    echo "ERROR: pkg-config cannot find FFmpeg libraries"
+    echo "Searched in PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+    echo "Listing contents of ${FFMPEG_PREFIX}:"
+    ls -la "${FFMPEG_PREFIX}" 2>/dev/null || echo "Directory does not exist"
+    if [ -d "${FFMPEG_PREFIX}" ]; then
+        echo "Directory structure:"
+        find "${FFMPEG_PREFIX}" -type d 2>/dev/null | head -20
+        echo "Searching for .pc files:"
+        find "${FFMPEG_PREFIX}" -name "*.pc" 2>/dev/null
+    fi
+    exit 1
+fi
 
 python3 setup.py build_ext --inplace
 cd $CURRENT_DIR
