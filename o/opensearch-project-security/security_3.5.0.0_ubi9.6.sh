@@ -41,7 +41,8 @@ for i in "$@"; do
       exit 3
       ;;
     *)
-      PACKAGE_VERSION=$i
+      # Strip 'v' prefix if present
+      PACKAGE_VERSION=${i#v}
       echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION}"
       ;;
   esac
@@ -65,7 +66,7 @@ cd ${BUILD_HOME}
 git clone https://github.com/opensearch-project/common-utils.git
 cd common-utils
 git checkout "${COMMON_UTILS_VERSION}"
-git apply ${SCRIPT_PATH}/common-utils_${PACKAGE_VERSION}.patch
+git apply ${SCRIPT_PATH}/common-utils_3.5.0.0.patch
 ./gradlew assemble
 ./gradlew -Prelease=true publishToMavenLocal
 
@@ -76,8 +77,7 @@ cd "${BUILD_HOME}"
 git clone "${PACKAGE_URL}"
 cd "${PACKAGE_NAME}"
 git checkout "${PACKAGE_VERSION}"
-git apply ${SCRIPT_PATH}/${PACKAGE_ORG}-${PACKAGE_NAME}_${PACKAGE_VERSION}.patch
-
+git apply ${SCRIPT_PATH}/opensearch-project-security_3.5.0.0.patch
 # --------
 # Build
 # --------
