@@ -91,6 +91,16 @@ fi
 export OPENSEARCH_SECURITY_ZIP=${BUILD_HOME}/${PACKAGE_NAME}/build/distributions/opensearch-security-${PACKAGE_VERSION}.zip
 
 # ---------------------------
+# Copy Plugin Zip for Artifacts
+# ---------------------------
+if [ -f "${OPENSEARCH_SECURITY_ZIP}" ]; then
+    echo "Copying plugin zip to build artifacts directory..."
+    mkdir -p ${BUILD_HOME}/artifacts
+    cp "${OPENSEARCH_SECURITY_ZIP}" ${BUILD_HOME}/artifacts/
+    echo "Plugin zip copied to ${BUILD_HOME}/artifacts/"
+fi
+
+# ---------------------------
 # Skip Tests?
 # ---------------------------
 if [ "$RUNTESTS" -eq 0 ]; then
@@ -124,5 +134,6 @@ fi
 set +ex
 echo "Complete: Build and Tests successful!"
 echo "Plugin zip available at [${OPENSEARCH_SECURITY_ZIP}]"
+echo "Plugin zip also copied to artifacts directory for GitHub Actions upload"
 echo "Installation instructions available at https://github.com/${PACKAGE_ORG}/${PACKAGE_NAME}/blob/${PACKAGE_VERSION}/DEVELOPER_GUIDE.md"
 

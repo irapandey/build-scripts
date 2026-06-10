@@ -171,6 +171,17 @@ jobs:
           sudo chown -R $USER:$USER package-cache
           sudo chmod -R u+rwX,go+rX,go-w package-cache
           
+      - name: Upload Build Artifacts (Plugin Zip)
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifacts-${{ inputs.package_name }}-${{ inputs.version }}
+          path: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+          if-no-files-found: warn
+          retention-days: 30
+          
       - name: Archive updated package cache
         run: tar -czf package-cache.tar.gz package-cache/
 
