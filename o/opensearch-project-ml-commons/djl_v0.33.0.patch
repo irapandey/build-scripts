@@ -83,7 +83,7 @@ index fcb16e641..8df67a195 100644
  [versions]
  djl = "0.33.0"
 -pytorch = "2.5.1"
-+pytorch = "1.13.1"
++pytorch = "2.1.2"
  tensorflow = "2.16.1"
  tensorflowCore = "1.0.0-rc.1"
  mxnet = "1.9.1"

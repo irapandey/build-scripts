@@ -20,10 +20,17 @@ def trigger_script_validation_checks(file_name, version, image_name):
     log_file_path = os.path.join(current_dir, "build_log.txt")
     with open(log_file_path, "w") as log_file:
         try:
+            # Initialize Gradle wrapper directories with proper permissions
+            init_gradle_command = (
+                "export GRADLE_USER_HOME=/tmp/gradle && "
+                "mkdir -p $GRADLE_USER_HOME/wrapper/dists && "
+                "chmod -R 755 $GRADLE_USER_HOME"
+            )
+            
             command = [
                 "bash",
                 "-c",
-                f"cd /home/tester/ && ./{file_name} {version}"
+                f"{init_gradle_command} && cd /home/tester/ && ./{file_name} {version}"
             ]
 
             container = client.containers.run(

@@ -1,0 +1,361 @@
+2026-06-10T11:14:18.3779409Z Current runner version: '2.334.0'
+2026-06-10T11:14:18.3803571Z Runner name: 'onprem133727114'
+2026-06-10T11:14:18.3805848Z Runner group name: 'Default'
+2026-06-10T11:14:18.3815553Z Machine name: 'onprem133727114'
+2026-06-10T11:14:18.3835343Z ##[group]GITHUB_TOKEN Permissions
+2026-06-10T11:14:18.3837883Z Actions: write
+2026-06-10T11:14:18.3838972Z ArtifactMetadata: write
+2026-06-10T11:14:18.3840191Z Attestations: write
+2026-06-10T11:14:18.3841351Z Checks: write
+2026-06-10T11:14:18.3842365Z CodeQuality: write
+2026-06-10T11:14:18.3843480Z Contents: write
+2026-06-10T11:14:18.3844558Z Deployments: write
+2026-06-10T11:14:18.3845668Z Discussions: write
+2026-06-10T11:14:18.3846747Z Issues: write
+2026-06-10T11:14:18.3847773Z Metadata: read
+2026-06-10T11:14:18.3848837Z Models: read
+2026-06-10T11:14:18.3849843Z Packages: write
+2026-06-10T11:14:18.3850899Z Pages: write
+2026-06-10T11:14:18.3851944Z PullRequests: write
+2026-06-10T11:14:18.3853123Z RepositoryProjects: write
+2026-06-10T11:14:18.3854554Z SecurityEvents: write
+2026-06-10T11:14:18.3855813Z Statuses: write
+2026-06-10T11:14:18.3856943Z VulnerabilityAlerts: read
+2026-06-10T11:14:18.3858210Z ##[endgroup]
+2026-06-10T11:14:18.3862769Z Secret source: Actions
+2026-06-10T11:14:18.3893740Z Prepare workflow directory
+2026-06-10T11:14:18.5410848Z Prepare all required actions
+2026-06-10T11:14:18.5523428Z Getting action download info
+2026-06-10T11:14:19.1475123Z Download action repository 'actions/checkout@v6' (SHA:df4cb1c069e1874edd31b4311f1884172cec0e10)
+2026-06-10T11:14:19.4818075Z Download action repository 'actions/download-artifact@v7' (SHA:37930b1c2abaa49bbe596cd826c3c89aef350131)
+2026-06-10T11:14:19.7483566Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-06-10T11:14:20.3001683Z Complete job name: build
+2026-06-10T11:14:20.5208767Z ##[group]Run actions/checkout@v6
+2026-06-10T11:14:20.5210417Z with:
+2026-06-10T11:14:20.5211728Z   repository: irapandey/build-scripts
+2026-06-10T11:14:20.5232512Z   token: ***
+2026-06-10T11:14:20.5257227Z   ssh-strict: true
+2026-06-10T11:14:20.5259502Z   ssh-user: git
+2026-06-10T11:14:20.5261292Z   persist-credentials: true
+2026-06-10T11:14:20.5262521Z   clean: true
+2026-06-10T11:14:20.5263587Z   sparse-checkout-cone-mode: true
+2026-06-10T11:14:20.5264935Z   fetch-depth: 1
+2026-06-10T11:14:20.5265946Z   fetch-tags: false
+2026-06-10T11:14:20.5267003Z   show-progress: true
+2026-06-10T11:14:20.5268074Z   lfs: false
+2026-06-10T11:14:20.5269024Z   submodules: false
+2026-06-10T11:14:20.5270110Z   set-safe-directory: true
+2026-06-10T11:14:20.5271360Z ##[endgroup]
+2026-06-10T11:14:20.6899285Z Syncing repository: irapandey/build-scripts
+2026-06-10T11:14:20.6905151Z ##[group]Getting Git version info
+2026-06-10T11:14:20.6907831Z Working directory is '/opt/runner-cache/_work/build-scripts/build-scripts'
+2026-06-10T11:14:20.6912589Z [command]/usr/bin/git version
+2026-06-10T11:14:20.6914393Z git version 2.54.0
+2026-06-10T11:14:20.6919016Z ##[endgroup]
+2026-06-10T11:14:20.6933072Z Temporarily overriding HOME='/opt/runner-cache/_work/_temp/37c7b907-e8ba-44c4-ac6b-90134ee9dd1e' before making global git config changes
+2026-06-10T11:14:20.6938433Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-10T11:14:20.6943146Z [command]/usr/bin/git config --global --add safe.directory /opt/runner-cache/_work/build-scripts/build-scripts
+2026-06-10T11:14:20.6948516Z [command]/usr/bin/git config --local --get remote.origin.url
+2026-06-10T11:14:20.6950729Z https://github.com/irapandey/build-scripts
+2026-06-10T11:14:20.6955347Z ##[group]Removing previously created refs, to avoid conflicts
+2026-06-10T11:14:20.6958144Z [command]/usr/bin/git rev-parse --symbolic-full-name --verify --quiet HEAD
+2026-06-10T11:14:20.6960649Z refs/heads/workflow-irapandey
+2026-06-10T11:14:20.6971122Z [command]/usr/bin/git checkout --detach
+2026-06-10T11:14:20.7287563Z HEAD is now at 53e30321 ml-commons
+2026-06-10T11:14:20.7348321Z [command]/usr/bin/git branch --delete --force workflow-irapandey
+2026-06-10T11:14:20.7386285Z Deleted branch workflow-irapandey (was 53e30321).
+2026-06-10T11:14:20.7432780Z ##[endgroup]
+2026-06-10T11:14:20.7438124Z [command]/usr/bin/git submodule status
+2026-06-10T11:14:20.7687414Z ##[group]Cleaning the repository
+2026-06-10T11:14:20.7692982Z [command]/usr/bin/git clean -ffdx
+2026-06-10T11:14:20.8548625Z Removing package-cache.tar.gz
+2026-06-10T11:14:20.8550260Z Removing package-cache/
+2026-06-10T11:14:20.8564994Z [command]/usr/bin/git reset --hard HEAD
+2026-06-10T11:14:20.9365473Z HEAD is now at 53e30321 ml-commons
+2026-06-10T11:14:20.9373067Z ##[endgroup]
+2026-06-10T11:14:20.9377500Z ##[group]Disabling automatic garbage collection
+2026-06-10T11:14:20.9383939Z [command]/usr/bin/git config --local gc.auto 0
+2026-06-10T11:14:20.9421667Z ##[endgroup]
+2026-06-10T11:14:20.9424211Z ##[group]Setting up auth
+2026-06-10T11:14:20.9425707Z Removing SSH command configuration
+2026-06-10T11:14:20.9433483Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-10T11:14:20.9476006Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-10T11:14:20.9730434Z Removing HTTP extra header
+2026-06-10T11:14:20.9740623Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-10T11:14:20.9785735Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-10T11:14:21.0018455Z Removing includeIf entries pointing to credentials config files
+2026-06-10T11:14:21.0034126Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-10T11:14:21.0072390Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-10T11:14:21.0335093Z [command]/usr/bin/git config --file /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-06-10T11:14:21.0395436Z [command]/usr/bin/git config --local includeIf.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git.path /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:21.0435539Z [command]/usr/bin/git config --local includeIf.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git/worktrees/*.path /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:21.0471745Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:21.0509185Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:21.0537483Z ##[endgroup]
+2026-06-10T11:14:21.0540293Z ##[group]Fetching the repository
+2026-06-10T11:14:21.0558768Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +53e30321f60ffa61bc818198e33b6cbc4d91375e:refs/remotes/origin/workflow-irapandey
+2026-06-10T11:14:21.3502914Z [command]/usr/bin/git branch --list --remote origin/workflow-irapandey
+2026-06-10T11:14:21.3535721Z   origin/workflow-irapandey
+2026-06-10T11:14:21.3549548Z [command]/usr/bin/git rev-parse refs/remotes/origin/workflow-irapandey
+2026-06-10T11:14:21.3576386Z 53e30321f60ffa61bc818198e33b6cbc4d91375e
+2026-06-10T11:14:21.3584697Z ##[endgroup]
+2026-06-10T11:14:21.3587783Z ##[group]Determining the checkout info
+2026-06-10T11:14:21.3593982Z ##[endgroup]
+2026-06-10T11:14:21.3596730Z [command]/usr/bin/git sparse-checkout disable
+2026-06-10T11:14:21.3820477Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-06-10T11:14:21.3867826Z ##[group]Checking out the ref
+2026-06-10T11:14:21.3879369Z [command]/usr/bin/git checkout --progress --force -B workflow-irapandey refs/remotes/origin/workflow-irapandey
+2026-06-10T11:14:21.4273097Z Switched to a new branch 'workflow-irapandey'
+2026-06-10T11:14:21.4278901Z branch 'workflow-irapandey' set up to track 'origin/workflow-irapandey'.
+2026-06-10T11:14:21.4289626Z ##[endgroup]
+2026-06-10T11:14:21.4354901Z [command]/usr/bin/git log -1 --format=%H
+2026-06-10T11:14:21.4388357Z 53e30321f60ffa61bc818198e33b6cbc4d91375e
+2026-06-10T11:14:21.4831800Z ##[group]Run actions/download-artifact@v7
+2026-06-10T11:14:21.4833317Z with:
+2026-06-10T11:14:21.4834228Z   name: package-cache
+2026-06-10T11:14:21.4835370Z   merge-multiple: false
+2026-06-10T11:14:21.4836626Z   repository: irapandey/build-scripts
+2026-06-10T11:14:21.4838052Z   run-id: 27272308221
+2026-06-10T11:14:21.4839162Z ##[endgroup]
+2026-06-10T11:14:21.7076363Z Downloading single artifact
+2026-06-10T11:14:21.8318077Z Preparing to download the following artifacts:
+2026-06-10T11:14:21.8322074Z - package-cache (ID: 7534028371, Size: 573, Expected Digest: sha256:5a203d20e6a17ca351e572faa56fc6d0b92c5f360d46457151879460b70c98bf)
+2026-06-10T11:14:22.0681163Z Redirecting to blob download url: https://productionresultssa7.blob.core.windows.net/actions-results/76ecb196-0346-4972-95c8-c6ec5783d378/workflow-job-run-6ba993d5-e368-5ba9-8489-292656552c55/artifacts/f51d1a2b779e0694f3dfd0519544cbe46b0143f9b181cd45a2c68826f37182d8.zip
+2026-06-10T11:14:22.0692262Z Starting download of artifact to: /opt/runner-cache/_work/build-scripts/build-scripts
+2026-06-10T11:14:22.1619519Z (node:1261031) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-06-10T11:14:22.1625506Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-06-10T11:14:22.1666681Z SHA256 digest of downloaded artifact is 5a203d20e6a17ca351e572faa56fc6d0b92c5f360d46457151879460b70c98bf
+2026-06-10T11:14:22.1670108Z Artifact download completed successfully.
+2026-06-10T11:14:22.1671942Z Total of 1 artifact(s) downloaded
+2026-06-10T11:14:22.1673816Z Download artifact has finished successfully
+2026-06-10T11:14:22.1845396Z ##[group]Run tar -xzf package-cache.tar.gz
+2026-06-10T11:14:22.1847364Z ␛[36;1mtar -xzf package-cache.tar.gz␛[0m
+2026-06-10T11:14:22.1892586Z shell: /usr/bin/bash -e {0}
+2026-06-10T11:14:22.1893873Z ##[endgroup]
+2026-06-10T11:14:22.2169437Z ##[group]Run echo "Sourcing variable.sh and scanner-env.sh..........................................."
+2026-06-10T11:14:22.2173649Z ␛[36;1mecho "Sourcing variable.sh and scanner-env.sh..........................................."␛[0m
+2026-06-10T11:14:22.2176559Z ␛[36;1msource package-cache/variable.sh␛[0m
+2026-06-10T11:14:22.2178317Z ␛[36;1msource package-cache/scanner-env.sh␛[0m
+2026-06-10T11:14:22.2180025Z ␛[36;1mecho "===== variable.sh ====="␛[0m
+2026-06-10T11:14:22.2181600Z ␛[36;1mcat package-cache/variable.sh␛[0m
+2026-06-10T11:14:22.2183300Z ␛[36;1mecho "===== scanner-env.sh ====="␛[0m
+2026-06-10T11:14:22.2184960Z ␛[36;1mcat package-cache/scanner-env.sh␛[0m
+2026-06-10T11:14:22.2186702Z ␛[36;1mecho "==============LSCPU================"␛[0m
+2026-06-10T11:14:22.2188302Z ␛[36;1mlscpu␛[0m
+2026-06-10T11:14:22.2189503Z ␛[36;1mecho "==================================="␛[0m
+2026-06-10T11:14:22.2191319Z ␛[36;1mchmod +x ./gha-script/build_package.sh␛[0m
+2026-06-10T11:14:22.2193424Z ␛[36;1mbash ./gha-script/build_package.sh␛[0m
+2026-06-10T11:14:22.2195291Z ␛[36;1mcloned_package=$(ls -td -- */ | head -n 1)␛[0m
+2026-06-10T11:14:22.2197236Z ␛[36;1msudo mv "$cloned_package" package-cache␛[0m
+2026-06-10T11:14:22.2199954Z ␛[36;1mecho "export CLONED_PACKAGE=\"$cloned_package\"" >> package-cache/scanner-env.sh␛[0m
+2026-06-10T11:14:22.2203150Z ␛[36;1mecho "-------------updated scanner-env.sh-----------------------"␛[0m
+2026-06-10T11:14:22.2205435Z ␛[36;1mcat  package-cache/scanner-env.sh␛[0m
+2026-06-10T11:14:22.2207796Z ␛[36;1mecho "---------------------------------------------"␛[0m
+2026-06-10T11:14:22.2209615Z ␛[36;1mcd package-cache␛[0m
+2026-06-10T11:14:22.2210937Z ␛[36;1msudo chown $USER:$USER -R .␛[0m
+2026-06-10T11:14:22.2212590Z ␛[36;1mchmod +x ../gha-script/pre_process.sh␛[0m
+2026-06-10T11:14:22.2214379Z ␛[36;1mbash ../gha-script/pre_process.sh␛[0m
+2026-06-10T11:14:22.2215977Z ␛[36;1mcd $GITHUB_WORKSPACE␛[0m
+2026-06-10T11:14:22.2217291Z ␛[36;1mgzip build_log␛[0m
+2026-06-10T11:14:22.2219018Z ␛[36;1mchmod +x ./gha-script/upload-scripts/upload_file.sh␛[0m
+2026-06-10T11:14:22.2256381Z shell: /usr/bin/bash -e {0}
+2026-06-10T11:14:22.2257665Z env:
+2026-06-10T11:14:22.2258988Z   GHA_CURRENCY_SERVICE_ID_API_KEY: 
+2026-06-10T11:14:22.2260370Z ##[endgroup]
+2026-06-10T11:14:22.2345422Z Sourcing variable.sh and scanner-env.sh...........................................
+2026-06-10T11:14:22.2348664Z ===== variable.sh =====
+2026-06-10T11:14:22.2349923Z export VERSION=v3.5.0.0
+2026-06-10T11:14:22.2352147Z export BUILD_SCRIPT="ml-commons_3.5.0.0_ubi9.7.sh"
+2026-06-10T11:14:22.2354793Z export PKG_DIR_PATH=o/opensearch-project-ml-commons/
+2026-06-10T11:14:22.2358068Z export IMAGE_NAME=icr.io/ppc64le-oss/opensearch-project-ml-commons-ppc64le:v3.5.0.0
+2026-06-10T11:14:22.2360848Z export VARIANT=
+2026-06-10T11:14:22.2361932Z export BASENAME=
+2026-06-10T11:14:22.2363079Z export NON_ROOT_BUILD=true
+2026-06-10T11:14:22.2364398Z export TESTED_ON=UBI9.7
+2026-06-10T11:14:22.2365672Z ===== scanner-env.sh =====
+2026-06-10T11:14:22.2367155Z export VALIDATE_BUILD_SCRIPT='true'
+2026-06-10T11:14:22.2368679Z export BUILD_DOCKER='false'
+2026-06-10T11:14:22.2370521Z export PACKAGE_NAME='opensearch-project-ml-commons'
+2026-06-10T11:14:22.2372375Z ==============LSCPU================
+2026-06-10T11:14:22.2457700Z Architecture:                       ppc64le
+2026-06-10T11:14:22.2460442Z Byte Order:                         Little Endian
+2026-06-10T11:14:22.2462564Z CPU(s):                             32
+2026-06-10T11:14:22.2464356Z On-line CPU(s) list:                0-31
+2026-06-10T11:14:22.2466536Z Model name:                         POWER9 (architected), altivec supported
+2026-06-10T11:14:22.2469116Z Model:                              1.3 (pvr 004e 2103)
+2026-06-10T11:14:22.2471757Z Thread(s) per core:                 8
+2026-06-10T11:14:22.2473530Z Core(s) per socket:                 1
+2026-06-10T11:14:22.2475176Z Socket(s):                          3
+2026-06-10T11:14:22.2476744Z Hypervisor vendor:                  pHyp
+2026-06-10T11:14:22.2479398Z Virtualization type:                para
+2026-06-10T11:14:22.2481280Z L1d cache:                          256 KiB (8 instances)
+2026-06-10T11:14:22.2483908Z L1i cache:                          256 KiB (8 instances)
+2026-06-10T11:14:22.2485943Z NUMA node(s):                       3
+2026-06-10T11:14:22.2487520Z NUMA node4 CPU(s):                  0-15
+2026-06-10T11:14:22.2489242Z NUMA node5 CPU(s):                  16-23
+2026-06-10T11:14:22.2490957Z NUMA node7 CPU(s):                  24-31
+2026-06-10T11:14:22.2492878Z Vulnerability Gather data sampling: Not affected
+2026-06-10T11:14:22.2494868Z Vulnerability Itlb multihit:        Not affected
+2026-06-10T11:14:22.2497442Z Vulnerability L1tf:                 Mitigation; RFI Flush, L1D private per thread
+2026-06-10T11:14:22.2500269Z Vulnerability Mds:                  Not affected
+2026-06-10T11:14:22.2503187Z Vulnerability Meltdown:             Mitigation; RFI Flush, L1D private per thread
+2026-06-10T11:14:22.2506054Z Vulnerability Mmio stale data:      Not affected
+2026-06-10T11:14:22.2508000Z Vulnerability Retbleed:             Not affected
+2026-06-10T11:14:22.2510013Z Vulnerability Spec rstack overflow: Not affected
+2026-06-10T11:14:22.2512872Z Vulnerability Spec store bypass:    Mitigation; Kernel entry/exit barrier (eieio)
+2026-06-10T11:14:22.2517100Z Vulnerability Spectre v1:           Mitigation; __user pointer sanitization, ori31 speculation barrier enabled
+2026-06-10T11:14:22.2522009Z Vulnerability Spectre v2:           Mitigation; Software count cache flush (hardware accelerated), Software link stack flush
+2026-06-10T11:14:22.2526223Z Vulnerability Srbds:                Not affected
+2026-06-10T11:14:22.2528152Z Vulnerability Tsx async abort:      Not affected
+2026-06-10T11:14:22.2529985Z ===================================
+2026-06-10T11:14:22.8763944Z Hit:1 https://ports.ubuntu.com/ubuntu-ports jammy InRelease
+2026-06-10T11:14:23.0053362Z Hit:2 https://ports.ubuntu.com/ubuntu-ports jammy-updates InRelease
+2026-06-10T11:14:23.1416202Z Hit:3 https://ports.ubuntu.com/ubuntu-ports jammy-backports InRelease
+2026-06-10T11:14:23.2778279Z Hit:4 https://ports.ubuntu.com/ubuntu-ports jammy-security InRelease
+2026-06-10T11:14:24.3941758Z Reading package lists...
+2026-06-10T11:14:24.5370802Z Building dependency tree...
+2026-06-10T11:14:24.5379348Z Reading state information...
+2026-06-10T11:14:24.5495018Z 174 packages can be upgraded. Run 'apt list --upgradable' to see them.
+2026-06-10T11:14:24.5518299Z 
+2026-06-10T11:14:24.5520343Z WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+2026-06-10T11:14:24.5522822Z 
+2026-06-10T11:14:24.6307293Z Reading package lists...
+2026-06-10T11:14:24.7795110Z Building dependency tree...
+2026-06-10T11:14:24.7805375Z Reading state information...
+2026-06-10T11:14:24.8922512Z file is already the newest version (1:5.41-3ubuntu0.1).
+2026-06-10T11:14:24.8926963Z 0 upgraded, 0 newly installed, 0 to remove and 174 not upgraded.
+2026-06-10T11:14:25.2933759Z Using pip 22.0.2 from /usr/lib/python3/dist-packages/pip (python 3.10)
+2026-06-10T11:14:25.6037851Z Collecting requests==2.31.0
+2026-06-10T11:14:25.6060491Z   Using cached requests-2.31.0-py3-none-any.whl (62 kB)
+2026-06-10T11:14:25.6629901Z Collecting idna<4,>=2.5
+2026-06-10T11:14:25.6649046Z   Using cached idna-3.18-py3-none-any.whl (65 kB)
+2026-06-10T11:14:25.7699031Z Collecting urllib3<3,>=1.21.1
+2026-06-10T11:14:25.7719672Z   Using cached urllib3-2.7.0-py3-none-any.whl (131 kB)
+2026-06-10T11:14:26.1487247Z Collecting charset-normalizer<4,>=2
+2026-06-10T11:14:26.1512534Z   Using cached charset_normalizer-3.4.7-cp310-cp310-manylinux2014_ppc64le.manylinux_2_17_ppc64le.manylinux_2_28_ppc64le.whl (231 kB)
+2026-06-10T11:14:26.2159035Z Collecting certifi>=2017.4.17
+2026-06-10T11:14:26.2178277Z   Using cached certifi-2026.5.20-py3-none-any.whl (134 kB)
+2026-06-10T11:14:26.3771569Z Installing collected packages: urllib3, idna, charset-normalizer, certifi, requests
+2026-06-10T11:14:26.3776211Z   Attempting uninstall: urllib3
+2026-06-10T11:14:26.3782021Z     Found existing installation: urllib3 2.7.0
+2026-06-10T11:14:26.4259044Z     Uninstalling urllib3-2.7.0:
+2026-06-10T11:14:26.4274495Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/urllib3-2.7.0.dist-info/
+2026-06-10T11:14:26.4280511Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/urllib3/
+2026-06-10T11:14:26.4284779Z       Successfully uninstalled urllib3-2.7.0
+2026-06-10T11:14:26.5043389Z   Attempting uninstall: idna
+2026-06-10T11:14:26.5050197Z     Found existing installation: idna 3.18
+2026-06-10T11:14:26.5229252Z     Uninstalling idna-3.18:
+2026-06-10T11:14:26.5240684Z       Removing file or directory /usr/local/bin/idna
+2026-06-10T11:14:26.5247214Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/idna-3.18.dist-info/
+2026-06-10T11:14:26.5252965Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/idna/
+2026-06-10T11:14:26.5257098Z       Successfully uninstalled idna-3.18
+2026-06-10T11:14:26.5691843Z   changing mode of /usr/local/bin/idna to 755
+2026-06-10T11:14:26.5753319Z   Attempting uninstall: charset-normalizer
+2026-06-10T11:14:26.5766872Z     Found existing installation: charset-normalizer 3.4.7
+2026-06-10T11:14:26.6015763Z     Uninstalling charset-normalizer-3.4.7:
+2026-06-10T11:14:26.6053732Z       Removing file or directory /usr/local/bin/normalizer
+2026-06-10T11:14:26.6059046Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/81d243bd2c585b0f4821__mypyc.cpython-310-powerpc64le-linux-gnu.so
+2026-06-10T11:14:26.6066188Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/charset_normalizer-3.4.7.dist-info/
+2026-06-10T11:14:26.6070866Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/charset_normalizer/
+2026-06-10T11:14:26.6074117Z       Successfully uninstalled charset-normalizer-3.4.7
+2026-06-10T11:14:26.6430981Z   changing mode of /usr/local/bin/normalizer to 755
+2026-06-10T11:14:26.6498014Z   Attempting uninstall: certifi
+2026-06-10T11:14:26.6504724Z     Found existing installation: certifi 2026.5.20
+2026-06-10T11:14:26.6609837Z     Uninstalling certifi-2026.5.20:
+2026-06-10T11:14:26.6615748Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/certifi-2026.5.20.dist-info/
+2026-06-10T11:14:26.6620660Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/certifi/
+2026-06-10T11:14:26.6623428Z       Successfully uninstalled certifi-2026.5.20
+2026-06-10T11:14:26.6726510Z   Attempting uninstall: requests
+2026-06-10T11:14:26.6731935Z     Found existing installation: requests 2.31.0
+2026-06-10T11:14:26.6987946Z     Uninstalling requests-2.31.0:
+2026-06-10T11:14:26.6996985Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/requests-2.31.0.dist-info/
+2026-06-10T11:14:26.7001996Z       Removing file or directory /usr/local/lib/python3.10/dist-packages/requests/
+2026-06-10T11:14:26.7004813Z       Successfully uninstalled requests-2.31.0
+2026-06-10T11:14:26.7393802Z Successfully installed certifi-2026.5.20 charset-normalizer-3.4.7 idna-3.18 requests-2.31.0 urllib3-2.7.0
+2026-06-10T11:14:26.7401314Z WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+2026-06-10T11:14:27.2806397Z Requirement already satisfied: docker in /usr/local/lib/python3.10/dist-packages (7.1.0)
+2026-06-10T11:14:27.4978690Z Requirement already satisfied: requests>=2.26.0 in /usr/local/lib/python3.10/dist-packages (from docker) (2.31.0)
+2026-06-10T11:14:27.4984533Z Requirement already satisfied: urllib3>=1.26.0 in /usr/local/lib/python3.10/dist-packages (from docker) (2.7.0)
+2026-06-10T11:14:27.5061103Z Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests>=2.26.0->docker) (3.18)
+2026-06-10T11:14:27.5068179Z Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests>=2.26.0->docker) (2026.5.20)
+2026-06-10T11:14:27.5075021Z Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests>=2.26.0->docker) (3.4.7)
+2026-06-10T11:14:27.6007884Z WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+2026-06-10T11:14:27.6507348Z Running build script execution in background for o/opensearch-project-ml-commons/ml-commons_3.5.0.0_ubi9.7.sh v3.5.0.0 
+2026-06-10T11:14:27.6514529Z *************************************************************************************
+2026-06-10T11:14:27.8836695Z 9.7: Pulling from ubi9/ubi
+2026-06-10T11:14:27.9132594Z Digest: sha256:e9a31af6530caffa3551f266c51a0d43b602e8f76a0dc12826dbeebceb487c92
+2026-06-10T11:14:27.9135834Z Status: Image is up to date for registry.access.redhat.com/ubi9/ubi:9.7
+2026-06-10T11:14:27.9147780Z registry.access.redhat.com/ubi9/ubi:9.7
+2026-06-10T11:14:27.9157770Z building docker image for non root user build
+2026-06-10T11:14:27.9260136Z DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+2026-06-10T11:14:27.9265811Z             Install the buildx component to build images with BuildKit:
+2026-06-10T11:14:27.9269868Z             https://docs.docker.com/go/buildx/
+2026-06-10T11:14:27.9272254Z 
+2026-06-10T11:14:31.3585996Z Sending build context to Docker daemon  206.3MB
+2026-06-10T11:14:31.3588097Z 
+2026-06-10T11:14:31.3947708Z Step 1/7 : ARG BASE_IMAGE
+2026-06-10T11:14:31.3949827Z Step 2/7 : FROM $BASE_IMAGE
+2026-06-10T11:14:31.4069164Z  ---> e9a31af6530c
+2026-06-10T11:14:31.4071008Z Step 3/7 : RUN yum install -y sudo
+2026-06-10T11:14:31.4135999Z  ---> Using cache
+2026-06-10T11:14:31.4137817Z  ---> 82f7a05e54d6
+2026-06-10T11:14:31.4140623Z Step 4/7 : RUN echo 'test_user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers.d/test_user
+2026-06-10T11:14:31.4203821Z  ---> Using cache
+2026-06-10T11:14:31.4206150Z  ---> 042135e30a5d
+2026-06-10T11:14:31.4208565Z Step 5/7 : RUN useradd -d /home/tester -m -s /bin/bash test_user
+2026-06-10T11:14:31.4267127Z  ---> Using cache
+2026-06-10T11:14:31.4268844Z  ---> 941b0e70a93a
+2026-06-10T11:14:31.4270555Z Step 6/7 : USER test_user
+2026-06-10T11:14:31.4375522Z  ---> Using cache
+2026-06-10T11:14:31.4377316Z  ---> 023508c5fb2b
+2026-06-10T11:14:31.4379738Z Step 7/7 : WORKDIR /home/tester
+2026-06-10T11:14:31.4443444Z  ---> Using cache
+2026-06-10T11:14:31.4445053Z  ---> 0ae18fcad1e7
+2026-06-10T11:14:31.9939140Z Successfully built 0ae18fcad1e7
+2026-06-10T11:14:32.0002469Z Successfully tagged docker_non_root_image:latest
+2026-06-10T11:14:32.1622018Z Inside python program
+2026-06-10T11:14:32.1757727Z Working directory: /opt/runner-cache/_work/build-scripts/build-scripts
+2026-06-10T11:14:32.1762896Z Build script: o/opensearch-project-ml-commons/ml-commons_3.5.0.0_ubi9.7.sh
+2026-06-10T11:14:32.7333653Z Package name: opensearch-project-ml-commons
+2026-06-10T11:14:32.7336909Z Traceback (most recent call last):
+2026-06-10T11:14:32.7340359Z   File "/opt/runner-cache/_work/build-scripts/build-scripts/gha-script/validate_builds_currency.py", line 64, in <module>
+2026-06-10T11:14:32.7344606Z     trigger_script_validation_checks(sys.argv[1], sys.argv[2], sys.argv[3])
+2026-06-10T11:14:32.7349453Z   File "/opt/runner-cache/_work/build-scripts/build-scripts/gha-script/validate_builds_currency.py", line 56, in trigger_script_validation_checks
+2026-06-10T11:14:32.7354458Z     raise Exception(f"Build script validation failed for {file_name}!")
+2026-06-10T11:14:32.7358477Z Exception: Build script validation failed for o/opensearch-project-ml-commons/ml-commons_3.5.0.0_ubi9.7.sh!
+2026-06-10T11:14:32.7536225Z Script execution failed for o/opensearch-project-ml-commons/ml-commons_3.5.0.0_ubi9.7.sh v3.5.0.0 
+2026-06-10T11:14:32.7540591Z *************************************************************************************
+2026-06-10T11:14:32.7560833Z ##[error]Process completed with exit code 1.
+2026-06-10T11:14:32.7964097Z Post job cleanup.
+2026-06-10T11:14:32.9168492Z [command]/usr/bin/git version
+2026-06-10T11:14:32.9216559Z git version 2.54.0
+2026-06-10T11:14:32.9270649Z Temporarily overriding HOME='/opt/runner-cache/_work/_temp/2e4e5011-341d-4e1e-9ec2-2f56dd0731c6' before making global git config changes
+2026-06-10T11:14:32.9275976Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-10T11:14:32.9280684Z [command]/usr/bin/git config --global --add safe.directory /opt/runner-cache/_work/build-scripts/build-scripts
+2026-06-10T11:14:32.9321118Z Removing SSH command configuration
+2026-06-10T11:14:32.9329852Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-10T11:14:32.9374494Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-10T11:14:32.9625587Z Removing HTTP extra header
+2026-06-10T11:14:32.9635611Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-10T11:14:32.9680524Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-10T11:14:32.9926047Z Removing includeIf entries pointing to credentials config files
+2026-06-10T11:14:32.9935911Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-10T11:14:32.9966542Z includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git.path
+2026-06-10T11:14:32.9970974Z includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git/worktrees/*.path
+2026-06-10T11:14:32.9973996Z includeif.gitdir:/github/workspace/.git.path
+2026-06-10T11:14:32.9976129Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-06-10T11:14:32.9982750Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git.path
+2026-06-10T11:14:33.0005317Z /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0022692Z [command]/usr/bin/git config --local --unset includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git.path /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0065076Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git/worktrees/*.path
+2026-06-10T11:14:33.0088572Z /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0109617Z [command]/usr/bin/git config --local --unset includeif.gitdir:/opt/runner-cache/_work/build-scripts/build-scripts/.git/worktrees/*.path /opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0144531Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-06-10T11:14:33.0167596Z /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0179704Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0214730Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-06-10T11:14:33.0245247Z /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0262482Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config
+2026-06-10T11:14:33.0304267Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-10T11:14:33.0555962Z Removing credentials config '/opt/runner-cache/_work/_temp/git-credentials-2091e04f-a553-423e-be17-406b4050cbec.config'
+2026-06-10T11:14:33.0792232Z Cleaning up orphan processes

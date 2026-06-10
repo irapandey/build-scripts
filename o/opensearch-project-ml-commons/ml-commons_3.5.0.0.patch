@@ -81,7 +81,7 @@ index 0aa755bd6..671dd415f 100644
 -                    System.setProperty("PYTORCH_PRECXX11", "true");
 -                    System.setProperty("PYTORCH_VERSION", "2.5.1");
 +                    System.setProperty("PYTORCH_PRECXX11", "false");
-+                    System.setProperty("PYTORCH_VERSION", "1.13.1");
++                    System.setProperty("PYTORCH_VERSION", "2.1.2");
                      System.setProperty("DJL_CACHE_DIR", mlEngine.getMlCachePath().toAbsolutePath().toString());
 +                    System.setProperty("ENGINE_CACHE_DIR", System.getProperty("user.home") + File.separator + ".djl.ai");
                      // DJL will read "/usr/java/packages/lib" if don't set "java.library.path". That will throw
@@ -98,7 +98,7 @@ index 7d80fe8ba..a838a36f7 100644
 -                    System.setProperty("PYTORCH_PRECXX11", "true");
 -                    System.setProperty("PYTORCH_VERSION", "2.5.1");
 +                    System.setProperty("PYTORCH_PRECXX11", "false");
-+                    System.setProperty("PYTORCH_VERSION", "1.13.1");
++                    System.setProperty("PYTORCH_VERSION", "2.1.2");
                      System.setProperty("DJL_CACHE_DIR", mlEngine.getMlCachePath().toAbsolutePath().toString());
 +                    System.setProperty("ENGINE_CACHE_DIR", System.getProperty("user.home") + File.separator + ".djl.ai");
                      // DJL will read "/usr/java/packages/lib" if don't set "java.library.path". That will throw
