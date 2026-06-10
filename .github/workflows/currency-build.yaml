@@ -659,6 +659,14 @@ jobs:
           mkdir source_trivy
           mv package-cache/trivy_source_vulnerabilities_results.json package-cache/trivy_source_sbom_results.cyclonedx source_trivy
 
+      - name: Upload Trivy Source Scan Results as Artifact
+        if: ${{ inputs.enable_trivy == 'true' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: trivy-source-scan-results
+          path: source_trivy/
+          retention-days: 30
+
       - name: Run Syft Scan
         if: ${{ inputs.enable_syft == 'true' }}
         run: |
@@ -681,19 +689,19 @@ jobs:
           mkdir source_grype
           mv package-cache/grype_source_sbom_results.json package-cache/grype_source_vulnerabilities_results.json source_grype
 
-      - name: Upload Scanner Results
-        env:
-           GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-        run: |
-          mkdir source
-          source package-cache/variable.sh
-          source package-cache/scanner-env.sh
-          find source_trivy -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
-          find source_syft -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
-          find source_grype -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
-          tar cvzf source_scanner.tar.gz source
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh source_scanner.tar.gz
+      # - name: Upload Scanner Results
+      #   env:
+      #      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
+      #   run: |
+      #     mkdir source
+      #     source package-cache/variable.sh
+      #     source package-cache/scanner-env.sh
+      #     find source_trivy -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
+      #     find source_syft -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
+      #     find source_grype -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
+      #     tar cvzf source_scanner.tar.gz source
+      #     chmod +x ./gha-script/upload-scripts/upload_file.sh
+      #     bash ./gha-script/upload-scripts/upload_file.sh source_scanner.tar.gz
 
   build_docker:
     needs: build_info 
@@ -772,6 +780,14 @@ jobs:
           bash ./gha-script/scanner-scripts/trivy_image_scan.sh
           mkdir image_trivy
           mv trivy_image_vulnerabilities_results.json trivy_image_sbom_results.cyclonedx image_trivy
+
+      - name: Upload Trivy Image Scan Results as Artifact
+        if: ${{ inputs.enable_trivy == 'true' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: trivy-image-scan-results
+          path: image_trivy/
+          retention-days: 30
 
       - name: Run Syft Image Scan
         if: ${{ inputs.enable_syft == 'true' }}
