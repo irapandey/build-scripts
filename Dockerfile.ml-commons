@@ -1,0 +1,45 @@
+FROM registry.access.redhat.com/ubi9/ubi:9.7
+
+# Install sudo first
+RUN yum install -y sudo && \
+    yum clean all
+
+# Create non-root user for build and configure sudo
+RUN useradd -m -u 1001 -s /bin/bash test_user && \
+    mkdir -p /home/tester && \
+    chown -R test_user:test_user /home/tester && \
+    echo "test_user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Set working directory
+WORKDIR /home/tester
+
+# Copy the build script and patches
+COPY o/opensearch-project-ml-commons/ml-commons_3.5.0.0_ubi9.7.sh /home/tester/
+COPY o/opensearch-project-ml-commons/ml-commons_3.5.0.0.patch /home/tester/
+COPY o/opensearch-project-ml-commons/onnxruntime_v1.17.1.patch /home/tester/
+COPY o/opensearch-project-ml-commons/djl_v0.33.0.patch /home/tester/
+
+# Make script executable
+RUN chmod +x /home/tester/ml-commons_3.5.0.0_ubi9.7.sh
+
+# Switch to non-root user
+USER test_user
+
+# Run the build script
+# The script will create the build artifacts in build_workspace/ml-commons/plugin/build/distributions/
+RUN bash -c "cd /home/tester && ./ml-commons_3.5.0.0_ubi9.7.sh"
+
+# Switch back to root to copy artifacts
+USER root
+
+# Create output directory and copy the built zip file
+RUN mkdir -p /output && \
+    find /home/tester/build_workspace/ml-commons -name "*.zip" -exec cp {} /output/ \;
+
+# Set the output directory as a volume mount point
+VOLUME ["/output"]
+
+# Default command to list the output files
+CMD ["sh", "-c", "ls -lh /output/*.zip && echo 'Build artifacts are in /output/'"]
+
+# Made with Bob

@@ -39,7 +39,7 @@ PACKAGE_URL="https://github.com/${PACKAGE_ORG}/${PACKAGE_NAME}.git"
 OPENSEARCH_PACKAGE="OpenSearch"
 OPENSEARCH_URL=https://github.com/${PACKAGE_ORG}/${OPENSEARCH_PACKAGE}.git
 ONNX_VERSION="v1.17.1"
-PYTORCH_VERSION="2.1.2"
+PYTORCH_VERSION="1.13.1"
 DJL_VERSION="v0.33.0"
 PYTHON_VERSION="3.9"
 SCRIPT_PATH="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
@@ -119,6 +119,27 @@ cd $BUILD_HOME
 export PATH=/usr/local/bin:/usr/bin:$PATH
 python3.9 -m pip install --user packaging "numpy<2.0" wheel setuptools
 
+#Build pytorch from source
+cd $BUILD_HOME
+export PATH=/usr/local/bin:/usr/bin:$PATH
+sudo ln -sf $(which python3.9) /usr/bin/python3
+sudo ln -sf $(which pip3.9) /usr/bin/pip3
+pip3 install packaging "numpy<2.0" wheel setuptools
+git clone https://github.com/pytorch/pytorch
+cd pytorch
+git checkout v${PYTORCH_VERSION}
+pip3 install -r requirements.txt
+git submodule sync
+git submodule update --init --recursive
+# Patch required for ppc64le build
+sed -i "196d" third_party/gloo/gloo/common/linux.cc
+sed -i "197i \ \ \ \ struct ethtool_link_settings req;" third_party/gloo/gloo/common/linux.cc
+export PYTORCH_BUILD_VERSION=${PYTORCH_VERSION}
+export PYTORCH_BUILD_NUMBER=1
+python3 setup.py bdist_wheel
+cd dist
+pip3 install ./torch-$PYTORCH_VERSION-cp39-cp39-linux_ppc64le.whl
+
 # ------------------------------------
 # Rust setup (required by tokenizers)
 # ------------------------------------
@@ -131,9 +152,9 @@ rustup default 1.87
 # Python native dependencies for DJL
 # ---------------------------
 
-python3.9 -m pip install torch==2.1.2 \
-  --prefer-binary \
-  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+# python3.9 -m pip install torch==2.1.2 \
+#   --prefer-binary \
+#   --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux-1.0.0
 
 python3.9 -m pip install abseil_cpp==20240116.2 \
   --prefer-binary \
