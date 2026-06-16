@@ -37,12 +37,16 @@ diff --git a/engines/pytorch/pytorch-native/build.gradle.kts b/engines/pytorch/p
 index e5f002961..7d877e93a 100644
 --- a/engines/pytorch/pytorch-native/build.gradle.kts
 +++ b/engines/pytorch/pytorch-native/build.gradle.kts
-@@ -33,7 +33,7 @@ fun downloadBuild(
+@@ -33,7 +33,11 @@ fun downloadBuild(
      isPrecxx11: Boolean = false,
      isAarch64: Boolean = false
  ) {
 -    val arch = if (isAarch64) "aarch64" else "x86_64"
-+    val arch = if (isAarch64) "aarch64" else "ppc64le"
++    val arch = when {
++        isAarch64 -> "aarch64"
++        System.getProperty("os.arch") == "ppc64le" -> "ppc64le"
++        else -> "x86_64"
++    }
      execOperations.exec {
          workingDir = project.projectDir
          if (os == "win")

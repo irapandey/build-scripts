@@ -187,8 +187,6 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-ppc64le-p10' || inputs.large-runner }}
     continue-on-error: false
     env:
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID: ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
       PYTHON_VERSION: "3.10"
 
     steps:
@@ -250,8 +248,6 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-ppc64le-p10' || inputs.large-runner }}
     continue-on-error: false
     env:
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID: ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
       PYTHON_VERSION: "3.11"
 
     steps:
@@ -314,8 +310,6 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-ppc64le-p10' || inputs.large-runner }}
     continue-on-error: false
     env:
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID: ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
       PYTHON_VERSION: "3.12"
 
     steps:
@@ -376,8 +370,6 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-ppc64le-p10' || inputs.large-runner }}
     continue-on-error: true
     env:
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID: ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
       PYTHON_VERSION: "3.13"
 
     steps:
@@ -439,8 +431,6 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04-ppc64le-p10' || inputs.large-runner }}
     continue-on-error: true
     env:
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID: ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
       PYTHON_VERSION: "3.14"
 
     steps:

@@ -29,6 +29,29 @@ install_python_version() {
     "3.11" | "3.12")
         yum install -y python${version} python${version}-devel python${version}-pip
         ;;
+    "3.9")
+        if ! python3.9 --version &>/dev/null; then
+            yum install -y sudo zlib-devel wget ncurses git make cmake openssl-devel xz xz-devel
+            yum install -y libffi libffi-devel sqlite sqlite-devel sqlite-libs bzip2-devel
+            wget https://www.python.org/ftp/python/3.9.21/Python-3.9.21.tgz
+            tar xf Python-3.9.21.tgz
+            cd Python-3.9.21
+            ./configure --prefix=/usr/local --enable-optimizations --enable-shared LDFLAGS="-Wl,-rpath /usr/local/lib"
+            make -j2
+            make altinstall
+            echo "Completed Python 3.9 installation"
+            cd .. && rm -rf Python-3.9.21 Python-3.9.21.tgz
+            
+            # Configure library path
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            echo "/usr/local/lib" > /etc/ld.so.conf.d/python3.9.conf
+            ldconfig
+            
+            # Verify installation
+            python3.9 --version
+            python3.9 -c "import sys; print(sys.executable)"
+        fi
+        ;;
     "3.10")
         if ! python3.10 --version &>/dev/null; then
             yum install -y sudo zlib-devel wget ncurses git make cmake openssl-devel xz xz-devel
@@ -247,7 +270,7 @@ mkdir -p "$WHEELHOUSE"
 
 # run auditwheel
 set +e
-audit_output=$(auditwheel repair "$wheel_file" --wheel-dir "$WHEELHOUSE" --exclude libtvm_ffi.so --exclude libtensorflow_framework.so.2 --exclude libpython3.11.so.1.0 --exclude libpython3.10.so.1.0 --exclude libpython3.12.so.1.0 --exclude libpython3.13.so.1.0 --exclude libc10.so --exclude libtorch.so --exclude libtorch_cpu.so --exclude libtorch_python.so --exclude libshm.so --exclude libtorchaudio.so --exclude libtorchtext.so --exclude libavutil-ffmpeg.so.54 --exclude libavformat-ffmpeg.so.56 --exclude libswscale-ffmpeg.so.3 --exclude libavcodec-ffmpeg.so.56 --exclude libavformat.so.57 --exclude libswscale.so.4 --exclude libavutil.so.55 --exclude libswscale.so.5 --exclude libavformat.so.58 2>&1)
+audit_output=$(auditwheel repair "$wheel_file" --wheel-dir "$WHEELHOUSE" --exclude libtvm_ffi.so --exclude libtensorflow_framework.so.2 --exclude libpython3.9.so.1.0 --exclude libpython3.11.so.1.0 --exclude libpython3.10.so.1.0 --exclude libpython3.12.so.1.0 --exclude libpython3.13.so.1.0 --exclude libc10.so --exclude libtorch.so --exclude libtorch_cpu.so --exclude libtorch_python.so --exclude libshm.so --exclude libtorchaudio.so --exclude libtorchtext.so --exclude libavutil-ffmpeg.so.54 --exclude libavformat-ffmpeg.so.56 --exclude libswscale-ffmpeg.so.3 --exclude libavcodec-ffmpeg.so.56 --exclude libavformat.so.57 --exclude libswscale.so.4 --exclude libavutil.so.55 --exclude libswscale.so.5 --exclude libavformat.so.58 2>&1)
 audit_status=$?
 set -e
 

@@ -11,6 +11,11 @@
   "validate_build_script": true,
   "use_non_root_user": false,
   "wheel_name": "torch",
+  "v1.13.1": {
+    "build_script": "pytorch_1.13.1_ubi_9.3.sh",
+    "wheel_build": true,
+    "python_versions": ["3.9"]
+  },
   "v2.4.0": {
     "build_script": "pytorch_ubi_9.3.sh"
   },
