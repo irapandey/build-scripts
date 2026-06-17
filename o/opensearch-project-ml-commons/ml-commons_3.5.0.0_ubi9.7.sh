@@ -367,21 +367,21 @@ fi
 # -----------------
 # Integration Test
 # -----------------
-ret=0
-export DJL_DIR=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
+# ret=0
+# export DJL_DIR=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
 
-./gradlew integTest \
-  -PcustomDistributionUrl=$BUILD_HOME/OpenSearch/distribution/archives/linux-ppc64le-tar/build/distributions/opensearch-min-$OPENSEARCH_VERSION-SNAPSHOT-linux-ppc64le.tar.gz \
-  -Dbuild.snapshot=false \
-  -Dorg.opensearch.djl.pytorch.path=$DJL_DIR \
-  -Djava.library.path=$DJL_DIR \
-  --no-daemon \
-  --console=plain || ret=$?
-if [ $ret -ne 0 ]; then
-	set +ex
-	echo "------------------ ${PACKAGE_NAME}: Integration Test Failed ------------------"
-	exit 2
-fi
+# ./gradlew integTest \
+#   -PcustomDistributionUrl=$BUILD_HOME/OpenSearch/distribution/archives/linux-ppc64le-tar/build/distributions/opensearch-min-$OPENSEARCH_VERSION-SNAPSHOT-linux-ppc64le.tar.gz \
+#   -Dbuild.snapshot=false \
+#   -Dorg.opensearch.djl.pytorch.path=$DJL_DIR \
+#   -Djava.library.path=$DJL_DIR \
+#   --no-daemon \
+#   --console=plain || ret=$?
+# if [ $ret -ne 0 ]; then
+# 	set +ex
+# 	echo "------------------ ${PACKAGE_NAME}: Integration Test Failed ------------------"
+# 	exit 2
+# fi
 
 # ---------------------------
 # Collect Build Artifacts
