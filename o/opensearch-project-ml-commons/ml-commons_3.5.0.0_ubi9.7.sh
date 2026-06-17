@@ -174,11 +174,16 @@ cd djl/
 git checkout $DJL_VERSION
 git apply ${SCRIPT_PATH}/djl_$DJL_VERSION.patch
 wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}%2Bcpu.zip
-unzip libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}+cpu.zip -d $BUILD_HOME/djl/engines/pytorch/pytorch-native 
+unzip libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}+cpu.zip -d $BUILD_HOME/djl/engines/pytorch/pytorch-native
 rm -rf libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}+cpu.zip
+
+# Replace include and lib directories with ppc64le-compatible versions from Python torch
 rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/include
+rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/lib
+rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/share
 \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/include $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib/* $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/lib/
+\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
+\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/share $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
 mkdir -p $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
 cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib/* $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
 cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/libprotobuf/lib64/libprotobuf.so.25.3.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
