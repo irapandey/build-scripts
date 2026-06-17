@@ -34,7 +34,7 @@ sudo chown -R test_user:test_user /home/tester 2>/dev/null || true
 PACKAGE_NAME="ml-commons"
 PACKAGE_ORG="opensearch-project"
 SCRIPT_PACKAGE_VERSION="3.5.0.0"
-PACKAGE_VERSION="${1:-$SCRIPT_PACKAGE_VERSION}"
+PACKAGE_VERSION="$SCRIPT_PACKAGE_VERSION"
 PACKAGE_URL="https://github.com/${PACKAGE_ORG}/${PACKAGE_NAME}.git"
 OPENSEARCH_PACKAGE="OpenSearch"
 OPENSEARCH_URL=https://github.com/${PACKAGE_ORG}/${OPENSEARCH_PACKAGE}.git
@@ -45,26 +45,34 @@ PYTHON_VERSION="3.9"
 SCRIPT_PATH="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 BUILD_HOME="$(pwd)/build_workspace"
 DJL_HOME="$HOME/.djl.ai"
+DJL_INSTALL_PREFIX="$HOME/.local/djl-pytorch-${PYTORCH_VERSION}"
 IBM_WHEELS="https://wheels.developerfirst.ibm.com/ppc64le/linux/+simple/"
 RUN_TESTS=1
+USE_PREBUILT_DJL=0
 
 # -------------------
 # Parse CLI Arguments
 # -------------------
-for i in "$@"; do
-  case $i in
+while [[ $# -gt 0 ]]; do
+  case $1 in
     --skip-tests)
       RUN_TESTS=0
       echo "Skipping tests"
       shift
       ;;
+    --use-prebuilt-djl)
+      USE_PREBUILT_DJL=1
+      echo "Using pre-built DJL from ${DJL_INSTALL_PREFIX}"
+      shift
+      ;;
     -*|--*)
-      echo "Unknown option $i"
+      echo "Unknown option $1"
       exit 3
       ;;
     *)
-      PACKAGE_VERSION=$i
+      PACKAGE_VERSION=$1
       echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION}"
+      shift
       ;;
   esac
 done
@@ -149,69 +157,128 @@ rustup install 1.87
 rustup default 1.87
 
 # ---------------------------
-# Python native dependencies for DJL
+# Build or Use Pre-built DJL
 # ---------------------------
+if [ "$USE_PREBUILT_DJL" -eq 1 ] && [ -d "$DJL_INSTALL_PREFIX" ] && [ -f "$DJL_INSTALL_PREFIX/setup-env.sh" ]; then
+    echo "=========================================="
+    echo "Using pre-built DJL from: $DJL_INSTALL_PREFIX"
+    echo "=========================================="
+    
+    # Source the DJL environment
+    source $DJL_INSTALL_PREFIX/setup-env.sh
+    
+    # Verify Maven artifacts exist
+    if [ ! -d "$HOME/.m2/repository/ai/djl" ]; then
+        echo "ERROR: DJL Maven artifacts not found in ~/.m2/repository/ai/djl"
+        echo "Please rebuild DJL using: bash ${SCRIPT_PATH}/build_djl_pytorch_v1.13.1.sh"
+        exit 1
+    fi
+    
+    echo "DJL environment configured successfully"
+    
+else
+    echo "=========================================="
+    echo "Building DJL with PyTorch ${PYTORCH_VERSION}"
+    echo "=========================================="
+    
+    # Check if standalone DJL build script exists
+    if [ -f "${SCRIPT_PATH}/build_djl_pytorch_v2.1.2.sh" ]; then
+        echo "Using standalone DJL build script..."
+        export BUILD_HOME="$BUILD_HOME"
+        export INSTALL_PREFIX="$DJL_INSTALL_PREFIX"
+        bash ${SCRIPT_PATH}/build_djl_pytorch_v2.1.2.sh
+        
+        # Source the newly built DJL environment
+        if [ -f "$DJL_INSTALL_PREFIX/setup-env.sh" ]; then
+            source $DJL_INSTALL_PREFIX/setup-env.sh
+        fi
+    else
+        echo "Standalone DJL build script not found, building inline..."
+        
+        # ---------------------------
+        # Python native dependencies for DJL
+        # ---------------------------
+        python3.9 -m pip install torch==${PYTORCH_VERSION} \
+          --prefer-binary \
+          --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux-1.0.0
 
-python3.9 -m pip install torch==2.1.2 \
-  --prefer-binary \
-  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux-1.0.0
+        # Install abseil_cpp from local wheel file if available, otherwise from IBM wheels
+        if [ -f "${SCRIPT_PATH}/abseil_cpp-20240116.2-py3-none-any.whl" ]; then
+            echo "Installing abseil_cpp from local wheel file..."
+            python3.9 -m pip install --user "${SCRIPT_PATH}/abseil_cpp-20240116.2-py3-none-any.whl"
+        else
+            echo "Local abseil_cpp wheel not found, downloading from IBM wheels..."
+            python3.9 -m pip install --user abseil_cpp==20240116.2 \
+              --prefer-binary \
+              --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+        fi
 
-python3.9 -m pip install abseil_cpp==20240116.2 \
-  --prefer-binary \
-  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+        # Install libprotobuf from local wheel file if available, otherwise from IBM wheels
+        if [ -f "${SCRIPT_PATH}/libprotobuf-4.25.3-py3-none-any.whl" ]; then
+            echo "Installing libprotobuf from local wheel file..."
+            python3.9 -m pip install --user "${SCRIPT_PATH}/libprotobuf-4.25.3-py3-none-any.whl"
+        else
+            echo "Local libprotobuf wheel not found, downloading from IBM wheels..."
+            python3.9 -m pip install --user libprotobuf==4.25.3 \
+              --prefer-binary \
+              --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+        fi
 
-python3.9 -m pip install libprotobuf==4.25.3 \
-  --prefer-binary \
-  --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+        # -------------------------------
+        # Build DJL with PyTorch engine
+        # -------------------------------
+        cd $BUILD_HOME
+        git clone https://github.com/deepjavalibrary/djl
+        cd djl/
+        git checkout $DJL_VERSION
+        git apply ${SCRIPT_PATH}/djl_$DJL_VERSION.patch
+        
+        # Set up libtorch directory structure
+        mkdir -p $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch
+        
+        # Copy PyTorch components from Python installation
+        \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/include $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
+        \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
+        \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/share $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
+        
+        # Copy abseil libraries
+        \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/abseilcpp/lib/* $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/lib/
+        
+        # Set up DJL runtime directory
+        mkdir -p $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
+        cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib/* $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
+        cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/libprotobuf/lib64/libprotobuf.so.25.3.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
+        cp /usr/lib64/libopenblas.so.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
+        cp /usr/lib64/libgfortran.so.5 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
+        cp /usr/lib64/libquadmath.so.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
+        \cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/abseilcpp/lib/* $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
 
+        # Create versioned symlinks for abseil libraries
+        cd $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
+        for f in libabsl_*.so; do
+            if [ -f "$f" ]; then
+                ln -sf $f ${f}.2401.0.0
+            fi
+        done
 
-# -------------------------------
-# Build DJL with PyTorch engine
-# -------------------------------
-cd $BUILD_HOME
-git clone https://github.com/deepjavalibrary/djl
-cd djl/
-git checkout $DJL_VERSION
-git apply ${SCRIPT_PATH}/djl_$DJL_VERSION.patch
-wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}%2Bcpu.zip
-unzip libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}+cpu.zip -d $BUILD_HOME/djl/engines/pytorch/pytorch-native
-rm -rf libtorch-cxx11-abi-shared-with-deps-${PYTORCH_VERSION}+cpu.zip
+        # ---------------------------
+        # Build DJL components
+        # ---------------------------
+        cd $BUILD_HOME/djl
+        export LD_LIBRARY_PATH=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le:$LD_LIBRARY_PATH
+        ./gradlew :engines:pytorch:pytorch-native:compileJNI --console=plain
+        # DJL PyTorch engine tests may fail on ppc64le - continue with build
+        ./gradlew --no-daemon :engines:pytorch:pytorch-engine:test -Dengine.pytorch.disable_native_extraction=true -Djava.library.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le --console=plain || echo "Warning: Some DJL PyTorch engine tests failed, continuing..."
+        ./gradlew :extensions:tokenizers:compileJNI --console=plain
+        ./gradlew --no-daemon :extensions:tokenizers:test -Dengine.pytorch.disable_native_extraction=true -Djava.library.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le -Dai.djl.debug=true --console=plain || echo "Warning: Some tokenizer tests failed, continuing..."
+        ./gradlew -Prelease=true publishToMavenLocal --console=plain
+        cd bom
+        ./gradlew build --console=plain
+        ./gradlew -Prelease=true publishToMavenLocal --console=plain
+    fi
+fi
 
-# Replace include and lib directories with ppc64le-compatible versions from Python torch
-rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/include
-rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/lib
-rm -rf $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/share
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/include $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/share $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/
-mkdir -p $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
-cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/torch/lib/* $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
-cp $HOME/.local/lib/python$PYTHON_VERSION/site-packages/libprotobuf/lib64/libprotobuf.so.25.3.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
-cp /usr/lib64/libopenblas.so.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
-cp /usr/lib64/libgfortran.so.5 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
-cp /usr/lib64/libquadmath.so.0 $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/abseilcpp/lib/*   $BUILD_HOME/djl/engines/pytorch/pytorch-native/libtorch/lib/
-\cp -rf $HOME/.local/lib/python$PYTHON_VERSION/site-packages/abseilcpp/lib/* $HOME/.djl.ai/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le
-
-# Create versioned symlinks for abseil libraries
-cd $DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le/
-    for f in libabsl_*.so; do     ln -sf $f ${f}.2401.0.0; done
-
-
-# ---------------------------
-# Build DJL components
-# ---------------------------	
-cd $BUILD_HOME/djl
-export LD_LIBRARY_PATH=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le:$LD_LIBRARY_PATH
-./gradlew :engines:pytorch:pytorch-native:compileJNI
-# DJL PyTorch engine tests may fail on ppc64le - continue with build
-./gradlew --no-daemon :engines:pytorch:pytorch-engine:test   -Dengine.pytorch.disable_native_extraction=true   -Djava.library.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le || echo "Warning: Some DJL PyTorch engine tests failed, continuing..."
-./gradlew :extensions:tokenizers:compileJNI
-./gradlew --no-daemon :extensions:tokenizers:test   -Dengine.pytorch.disable_native_extraction=true   -Djava.library.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le   -Dai.djl.debug=true || echo "Warning: Some tokenizer tests failed, continuing..."
-./gradlew -Prelease=true publishToMavenLocal
-cd bom
-./gradlew build
-./gradlew -Prelease=true publishToMavenLocal
+echo "DJL build/setup complete"
 
 
 # ------------------------------
@@ -221,9 +288,9 @@ cd $BUILD_HOME
 git clone https://github.com/irapandey/OpenSearch
 cd OpenSearch
 git checkout ppc64le
-./gradlew -p distribution/archives/linux-ppc64le-tar assemble
-./gradlew -Prelease=true publishToMavenLocal
-./gradlew :build-tools:publishToMavenLocal
+./gradlew -p distribution/archives/linux-ppc64le-tar assemble --console=plain
+./gradlew -Prelease=true publishToMavenLocal --console=plain
+./gradlew :build-tools:publishToMavenLocal --console=plain
 
 # ---------------------------
 # Build Job Scheduler
@@ -242,9 +309,8 @@ cd $BUILD_HOME
 git clone https://github.com/opensearch-project/opensearch-remote-metadata-sdk
 cd opensearch-remote-metadata-sdk
 git checkout $PACKAGE_VERSION
-export GRADLE_OPTS="-Dorg.gradle.console=plain"
-./gradlew build
-./gradlew -Prelease=true publishToMavenLocal
+./gradlew build --console=plain
+./gradlew -Prelease=true publishToMavenLocal --console=plain
 
 
 # ---------------------------
@@ -261,7 +327,7 @@ git apply ${SCRIPT_PATH}/ml-commons_$SCRIPT_PACKAGE_VERSION.patch
 # Build
 # --------
 ret=0
-./gradlew build -x test -x integTest -x jacocoTestCoverageVerification -Dbuild.snapshot=false || ret=$?
+./gradlew build -x test -x integTest -x jacocoTestCoverageVerification -Dbuild.snapshot=false --console=plain || ret=$?
 if [ $ret -ne 0 ]; then
         set +ex
 	echo "------------------ ${PACKAGE_NAME}: Build Failed ------------------"
@@ -271,7 +337,7 @@ fi
 # --------
 # Install
 # --------
-./gradlew -Prelease=true publishToMavenLocal
+./gradlew -Prelease=true publishToMavenLocal --console=plain
 
 # ---------------------------
 # Skip Tests?
@@ -287,10 +353,10 @@ fi
 # ----------
 ret=0
 echo "Running unit tests..."
-./gradlew test -x integTest --continue -Dorg.opensearch.djl.pytorch.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le || ret=$?
+./gradlew test -x integTest --continue -Dorg.opensearch.djl.pytorch.path=$DJL_HOME/pytorch/$PYTORCH_VERSION-cpu-linux-ppc64le --console=plain || ret=$?
 if [ $ret -ne 0 ]; then
         ret=0
-        ./gradlew test -x integTest || ret=$?
+        ./gradlew test -x integTest --console=plain || ret=$?
         if [ $ret -ne 0 ]; then
 		echo "------------------ ${PACKAGE_NAME}: Unit Test Failed ------------------"
 		echo "Warning: Unit tests failed, but continuing with build to collect artifacts..."

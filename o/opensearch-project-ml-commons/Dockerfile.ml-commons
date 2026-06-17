@@ -1,0 +1,198 @@
+FROM registry.access.redhat.com/ubi9/ubi:9.7 AS djl-base
+
+# This stage builds or imports pre-built DJL
+# If you have a pre-built DJL image, you can use: FROM djl-pytorch-builder AS djl-base
+
+# Build arguments
+ARG DJL_VERSION=v0.33.0
+ARG PYTORCH_VERSION=2.1.2
+ARG PYTHON_VERSION=3.9
+
+# Environment variables
+ENV DJL_VERSION=${DJL_VERSION}
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+ENV BUILD_HOME=/home/builder/djl_build
+ENV DJL_HOME=/home/builder/.djl.ai
+ENV DJL_INSTALL_PREFIX=/home/builder/.local/djl-pytorch-${PYTORCH_VERSION}
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+ENV PATH=${JAVA_HOME}/bin:${PATH}
+
+# Install system dependencies
+RUN yum install -y \
+    java-21-openjdk-devel \
+    wget git unzip make cmake \
+    gcc gcc-c++ gcc-gfortran \
+    perl python3.9-devel python3.9-pip \
+    zlib-devel openssl-devel libffi-devel \
+    openblas-devel \
+    sudo && \
+    yum clean all
+
+# Create builder user
+RUN useradd -m -s /bin/bash builder && \
+    echo "builder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER builder
+WORKDIR /home/builder
+
+# Install Rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    . $HOME/.cargo/env && \
+    rustup install 1.87 && \
+    rustup default 1.87
+
+ENV PATH="/home/builder/.cargo/bin:${PATH}"
+
+# Install Python dependencies
+RUN python3.9 -m pip install --user packaging "numpy<2.0" wheel setuptools
+
+# Copy local wheel file
+COPY --chown=builder:builder abseil_cpp-20240116.2-py3-none-any.whl /tmp/
+
+# Install PyTorch and dependencies
+RUN python3.9 -m pip install --user torch==${PYTORCH_VERSION} \
+    --prefer-binary \
+    --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux-1.0.0 && \
+    python3.9 -m pip install --user /tmp/abseil_cpp-20240116.2-py3-none-any.whl && \
+    python3.9 -m pip install --user libprotobuf==4.25.3 \
+    --prefer-binary \
+    --extra-index-url=https://wheels.developerfirst.ibm.com/ppc64le/linux
+
+# Build DJL
+RUN mkdir -p ${BUILD_HOME}
+WORKDIR ${BUILD_HOME}
+RUN git clone https://github.com/deepjavalibrary/djl && \
+    cd djl && \
+    git checkout ${DJL_VERSION}
+
+COPY --chown=builder:builder djl_v0.33.0.patch /tmp/djl.patch
+RUN cd djl && git apply /tmp/djl.patch
+
+# Set up libtorch
+WORKDIR ${BUILD_HOME}/djl
+RUN mkdir -p engines/pytorch/pytorch-native/libtorch && \
+    cp -r $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/torch/include engines/pytorch/pytorch-native/libtorch/ && \
+    cp -r $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/torch/lib engines/pytorch/pytorch-native/libtorch/ && \
+    cp -r $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/torch/share engines/pytorch/pytorch-native/libtorch/ && \
+    cp -r $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/abseilcpp/lib/* engines/pytorch/pytorch-native/libtorch/lib/
+
+# Set up DJL runtime
+RUN mkdir -p ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    cp $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/torch/lib/* ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    cp $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/libprotobuf/lib64/libprotobuf.so.25.3.0 ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    sudo cp /usr/lib64/libopenblas.so.0 ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    sudo cp /usr/lib64/libgfortran.so.5 ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    sudo cp /usr/lib64/libquadmath.so.0 ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    cp -r $HOME/.local/lib/python${PYTHON_VERSION}/site-packages/abseilcpp/lib/* ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    cd ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/ && \
+    for f in libabsl_*.so; do if [ -f "$f" ]; then ln -sf $f ${f}.2401.0.0; fi; done
+
+ENV LD_LIBRARY_PATH="${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le:${LD_LIBRARY_PATH}"
+
+# Build DJL
+WORKDIR ${BUILD_HOME}/djl
+RUN ./gradlew :engines:pytorch:pytorch-native:compileJNI && \
+    ./gradlew --no-daemon :engines:pytorch:pytorch-engine:test -Dengine.pytorch.disable_native_extraction=true -Djava.library.path=${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le || echo "Warning: Some tests failed" && \
+    ./gradlew :extensions:tokenizers:compileJNI && \
+    ./gradlew --no-daemon :extensions:tokenizers:test -Dengine.pytorch.disable_native_extraction=true -Djava.library.path=${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le -Dai.djl.debug=true || echo "Warning: Some tests failed" && \
+    ./gradlew -Prelease=true publishToMavenLocal && \
+    cd bom && ./gradlew build && ./gradlew -Prelease=true publishToMavenLocal
+
+# Create DJL installation
+RUN mkdir -p ${DJL_INSTALL_PREFIX}/lib ${DJL_INSTALL_PREFIX}/maven && \
+    cp -r ${DJL_HOME}/pytorch/${PYTORCH_VERSION}-cpu-linux-ppc64le/* ${DJL_INSTALL_PREFIX}/lib/ && \
+    if [ -d "$HOME/.m2/repository/ai/djl" ]; then cp -r $HOME/.m2/repository/ai/djl ${DJL_INSTALL_PREFIX}/maven/; fi
+
+# ============================================================================
+# Stage 2: Build ml-commons using pre-built DJL
+# ============================================================================
+FROM registry.access.redhat.com/ubi9/ubi:9.7
+
+# Build arguments
+ARG PACKAGE_VERSION=3.5.0.0
+ARG ONNX_VERSION=v1.17.1
+ARG PYTORCH_VERSION=2.1.2
+ARG PYTHON_VERSION=3.9
+
+# Environment variables
+ENV PACKAGE_VERSION=${PACKAGE_VERSION}
+ENV ONNX_VERSION=${ONNX_VERSION}
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+ENV BUILD_HOME=/home/tester/build_workspace
+ENV DJL_HOME=/home/tester/.djl.ai
+ENV DJL_INSTALL_PREFIX=/home/tester/.local/djl-pytorch-${PYTORCH_VERSION}
+ENV SCRIPT_PATH=/home/tester/scripts
+
+# Install dependencies
+RUN yum install -y \
+    java-17-openjdk-devel \
+    java-21-openjdk-devel \
+    wget git sudo unzip make cmake \
+    gcc gcc-c++ gcc-gfortran \
+    perl python3.9-devel python3.9-pip \
+    zlib-devel openssl-devel libffi-devel \
+    openblas-devel && \
+    yum clean all
+
+# Create test_user
+RUN useradd -m -s /bin/bash test_user && \
+    echo "test_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /home/tester && \
+    chown -R test_user:test_user /home/tester
+
+USER test_user
+WORKDIR /home/tester
+
+# Copy DJL artifacts from previous stage
+COPY --from=djl-base --chown=test_user:test_user /home/builder/.local/djl-pytorch-${PYTORCH_VERSION} ${DJL_INSTALL_PREFIX}
+COPY --from=djl-base --chown=test_user:test_user /home/builder/.m2/repository /home/tester/.m2/repository
+COPY --from=djl-base --chown=test_user:test_user /home/builder/.djl.ai ${DJL_HOME}
+
+# Copy build scripts and patches
+RUN mkdir -p ${SCRIPT_PATH}
+COPY --chown=test_user:test_user ml-commons_3.5.0.0_ubi9.7.sh ${SCRIPT_PATH}/
+COPY --chown=test_user:test_user ml-commons_3.5.0.0.patch ${SCRIPT_PATH}/
+COPY --chown=test_user:test_user onnxruntime_v1.17.1.patch ${SCRIPT_PATH}/
+COPY --chown=test_user:test_user djl_v0.33.0.patch ${SCRIPT_PATH}/
+
+# Create artifacts directory
+RUN mkdir -p /home/tester/artifacts
+
+# Create build script
+RUN echo '#!/bin/bash' > /home/tester/build.sh && \
+    echo 'set -e' >> /home/tester/build.sh && \
+    echo '' >> /home/tester/build.sh && \
+    echo 'echo "=========================================="' >> /home/tester/build.sh && \
+    echo 'echo "Building ml-commons with pre-built DJL"' >> /home/tester/build.sh && \
+    echo 'echo "=========================================="' >> /home/tester/build.sh && \
+    echo '' >> /home/tester/build.sh && \
+    echo '# Source DJL environment' >> /home/tester/build.sh && \
+    echo 'export LD_LIBRARY_PATH="${DJL_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}"' >> /home/tester/build.sh && \
+    echo 'export JAVA_OPTS="-Dorg.opensearch.djl.pytorch.path=${DJL_INSTALL_PREFIX}/lib"' >> /home/tester/build.sh && \
+    echo 'export JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${DJL_INSTALL_PREFIX}/lib"' >> /home/tester/build.sh && \
+    echo '' >> /home/tester/build.sh && \
+    echo '# Run ml-commons build with pre-built DJL flag' >> /home/tester/build.sh && \
+    echo 'cd /home/tester' >> /home/tester/build.sh && \
+    echo 'bash ${SCRIPT_PATH}/ml-commons_3.5.0.0_ubi9.7.sh --use-prebuilt-djl "$@"' >> /home/tester/build.sh && \
+    echo '' >> /home/tester/build.sh && \
+    echo '# Copy artifacts' >> /home/tester/build.sh && \
+    echo 'if [ -d "/output" ]; then' >> /home/tester/build.sh && \
+    echo '    echo "Copying artifacts to /output..."' >> /home/tester/build.sh && \
+    echo '    cp -r /home/tester/artifacts/* /output/ 2>/dev/null || true' >> /home/tester/build.sh && \
+    echo '    echo "Build completed. Artifacts copied to /output"' >> /home/tester/build.sh && \
+    echo 'else' >> /home/tester/build.sh && \
+    echo '    echo "Build completed. Artifacts available in /home/tester/artifacts"' >> /home/tester/build.sh && \
+    echo 'fi' >> /home/tester/build.sh && \
+    chmod +x /home/tester/build.sh
+
+ENTRYPOINT ["/bin/bash", "/home/tester/build.sh"]
+CMD []
+
+# Usage:
+# Build: docker build -t ml-commons-builder -f Dockerfile.ml-commons .
+# Run:   docker run -v $(pwd)/output:/output ml-commons-builder
+# Skip tests: docker run -v $(pwd)/output:/output ml-commons-builder --skip-tests
+
+# Made with Bob
