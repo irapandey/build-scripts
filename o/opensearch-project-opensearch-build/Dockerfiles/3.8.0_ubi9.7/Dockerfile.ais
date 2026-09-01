@@ -40,6 +40,8 @@ ARG SECURITY_PLUGIN_DIR=$OPENSEARCH_HOME/plugins/opensearch-security
 ARG PERFORMANCE_ANALYZER_PLUGIN_CONFIG_DIR=$OPENSEARCH_PATH_CONF/opensearch-performance-analyzer
 
 # Update packages
+RUN dnf upgrade -y curl-minimal libcurl-minimal libpng && dnf clean all
+
 # Install the tools we need: tar and gzip to unpack the OpenSearch tarball, and shadow-utils to give us `groupadd` and `useradd`.
 # Install which to allow running of securityadmin.sh
 RUN dnf update -y && dnf install -y tar gzip shadow-utils which && dnf clean all
@@ -80,6 +82,8 @@ ARG GID=1000
 ARG OPENSEARCH_HOME=/usr/share/opensearch
 
 # Update packages
+RUN dnf upgrade -y curl-minimal libcurl-minimal libpng && dnf clean all
+
 # Install the tools we need: tar and gzip to unpack the OpenSearch tarball, and shadow-utils to give us `groupadd` and `useradd`.
 # Install which to allow running of securityadmin.sh
 RUN dnf update -y && dnf install -y tar gzip shadow-utils which && dnf clean all
@@ -91,9 +95,14 @@ RUN groupadd -g $GID opensearch && \
 # Copy from Stage0
 COPY --from=linux_stage_0 --chown=$UID:$GID $OPENSEARCH_HOME $OPENSEARCH_HOME
 WORKDIR $OPENSEARCH_HOME
-
 RUN yum install -y \
     java-25-openjdk-devel && \
+    yum upgrade -y \
+    java-25-openjdk \
+    java-25-openjdk-devel \
+    java-25-openjdk-headless \
+    java-25-openjdk-crypto-adapter && \
+    yum remove -y vim-minimal && \
     yum clean all
 
 ENV JAVA_HOME=/usr/lib/jvm/java-25-openjdk

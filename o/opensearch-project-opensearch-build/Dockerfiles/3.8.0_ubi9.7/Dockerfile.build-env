@@ -3,6 +3,9 @@ FROM registry.access.redhat.com/ubi9/ubi
 # Set working directory
 WORKDIR /opensearch-build
 
+# Apply CVE mitigations before installing any other packages.
+RUN yum upgrade -y curl-minimal libcurl-minimal libpng && yum clean all
+
 # Install system dependencies
 RUN yum install -y --allowerasing \
     git \
@@ -36,6 +39,11 @@ RUN curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linu
 # final OpenSearch image matches the expected runtime version.
 RUN yum install -y \
     java-25-openjdk-devel && \
+    yum upgrade -y \
+    java-25-openjdk \
+    java-25-openjdk-devel \
+    java-25-openjdk-headless \
+    java-25-openjdk-crypto-adapter && \
     yum clean all
 
 # Set Java environment
