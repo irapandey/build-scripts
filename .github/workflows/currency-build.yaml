@@ -42,8 +42,7 @@ on:
         type: choice
         options:
           - ''
-          - ubuntu-24.04-ppc64le-2xlarge-p10
-          - ubuntu-24.04-ppc64le-4xlarge-p10
+          - self-hosted
 
 run-name: >
   ${{ inputs.large-runner-label != '' &&
@@ -56,11 +55,9 @@ jobs:
   # ---------------------------------------------------------------------------
   # build_info: reads build_info.json, runs read_buildinfo.sh, emits
   # per-UBI-major outputs (script_ubi8, script_ubi9, script_ubi10).
-  # Each output is a JSON object string  {"script":"...","tested_on":"..."}
-  # or an empty string "" when that UBI version has no script for this package.
   # ---------------------------------------------------------------------------
   build_info:
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     env:
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION: ${{ inputs.version }}
@@ -108,7 +105,6 @@ jobs:
           echo "SCRIPT_UBI9=$SCRIPT_UBI9"
           echo "SCRIPT_UBI10=$SCRIPT_UBI10"
           echo "SKIP_PYTHON_VERSIONS=$SKIP_PYTHON_VERSIONS"
-          # Use multiline delimiter syntax so JSON double-quotes are not truncated
           {
             echo "script_ubi8<<__EOF__"
             echo "$SCRIPT_UBI8"
@@ -147,13 +143,11 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # install_scan_tools: installs grype + fetches scancode-toolkit source ONCE.
-  # Runs when wheel_build=true (scancode needed for wheels) OR enable_grype=true
-  # (grype needed for source/image scanners).
   # ---------------------------------------------------------------------------
   install_scan_tools:
     needs: build_info
     if: ${{ inputs.wheel_build == 'true' || inputs.enable_grype == 'true' }}
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -204,16 +198,12 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # BUILD JOBS — one per UBI major version.
-  # Each job runs build_package.sh inside the correct UBI container.
-  # build_ubi9 always runs (every package has at least a UBI9 script).
-  # build_ubi8 / build_ubi10 only run when that UBI version has a script.
-  # All three are independent of each other (fully parallel).
   # ---------------------------------------------------------------------------
 
   build_ubi8:
     needs: build_info
     if: ${{ inputs.validate_build_script == 'true' && needs.build_info.outputs.script_ubi8 != '' }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi8).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi8).tested_on }}
@@ -226,8 +216,6 @@ jobs:
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
       - name: Build Package (UBI8)
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           sudo chown -R $USER:$USER .
           source package-cache/variable.sh
@@ -248,8 +236,7 @@ jobs:
           bash ../gha-script/pre_process.sh
           cd $GITHUB_WORKSPACE
           gzip build_log && mv build_log.gz build_log_UBI8.gz
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh build_log_UBI8.gz
+          echo "[INFO] Upload skipped (no credentials configured)"
       - name: Fix permissions
         run: sudo chown -R $USER:$USER package-cache && sudo chmod -R u+rwX,go+rX,go-w package-cache
       - name: Archive updated package-cache
@@ -263,7 +250,7 @@ jobs:
   build_ubi9:
     needs: build_info
     if: ${{ inputs.validate_build_script == 'true' && needs.build_info.outputs.script_ubi9 != '' }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi9).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
@@ -276,8 +263,6 @@ jobs:
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
       - name: Build Package (UBI9)
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           sudo chown -R $USER:$USER .
           source package-cache/variable.sh
@@ -298,8 +283,7 @@ jobs:
           bash ../gha-script/pre_process.sh
           cd $GITHUB_WORKSPACE
           gzip build_log && mv build_log.gz build_log_UBI9.gz
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh build_log_UBI9.gz
+          echo "[INFO] Upload skipped (no credentials configured)"
       - name: Fix permissions
         run: sudo chown -R $USER:$USER package-cache && sudo chmod -R u+rwX,go+rX,go-w package-cache
       - name: Archive updated package-cache
@@ -313,7 +297,7 @@ jobs:
   build_ubi10:
     needs: build_info
     if: ${{ inputs.validate_build_script == 'true' && needs.build_info.outputs.script_ubi10 != '' }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi10).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi10).tested_on }}
@@ -326,8 +310,6 @@ jobs:
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
       - name: Build Package (UBI10)
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           sudo chown -R $USER:$USER .
           source package-cache/variable.sh
@@ -348,8 +330,7 @@ jobs:
           bash ../gha-script/pre_process.sh
           cd $GITHUB_WORKSPACE
           gzip build_log && mv build_log.gz build_log_UBI10.gz
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh build_log_UBI10.gz
+          echo "[INFO] Upload skipped (no credentials configured)"
       - name: Fix permissions
         run: sudo chown -R $USER:$USER package-cache && sudo chmod -R u+rwX,go+rX,go-w package-cache
       - name: Archive updated package-cache
@@ -362,9 +343,6 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # WHEEL BUILD JOBS — one job per UBI version per Python version.
-  # All 15 jobs are fully parallel (none depend on the build jobs above).
-  # UBI10 does not support Python 3.10 — those jobs are skipped via if:.
-  # Each job needs install_scan_tools for grype/scancode artifacts.
   # ---------------------------------------------------------------------------
 
   wheel_build_ubi8_py311:
@@ -373,15 +351,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi8 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.11') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.11"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi8).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi8).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -423,7 +399,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py311_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi8_py311.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -441,24 +417,19 @@ jobs:
           mkdir -p wheel_scancode_py311
           find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py311/ \;
           tar czf wheel_scancode_py311.tar.gz wheel_scancode_py311
-          bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py311.tar.gz
           mkdir -p grype_wheel_py311
           find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py311/ \;
           tar czf grype_wheel_py311.tar.gz grype_wheel_py311
-          bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py311.tar.gz
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi8_py312:
     needs: [build_info, install_scan_tools]
@@ -466,15 +437,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi8 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.12') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.12"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi8).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi8).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -514,7 +483,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py312_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi8_py312.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -529,29 +498,22 @@ jobs:
       - name: Upload wheel scan results
         run: |
           source package-cache/variable.sh
-          mkdir -p wheel_scancode_py312
-          find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py312/ \;
+          mkdir -p wheel_scancode_py312; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py312/ \;
           tar czf wheel_scancode_py312.tar.gz wheel_scancode_py312
-          bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py312.tar.gz
-          mkdir -p grype_wheel_py312
-          find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py312/ \;
+          mkdir -p grype_wheel_py312; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py312/ \;
           tar czf grype_wheel_py312.tar.gz grype_wheel_py312
-          bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py312.tar.gz
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
-  # UBI9 wheel jobs (py310-py314) ------------------------------------------------
+  # UBI9 wheel jobs (py310–py314) -----------------------------------------------
 
   wheel_build_ubi9_py310:
     needs: [build_info, install_scan_tools]
@@ -559,15 +521,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi9 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.10') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.10"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi9).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -607,7 +567,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py310_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi9_py310.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -623,22 +583,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py310; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py310/ \;
-          tar czf wheel_scancode_py310.tar.gz wheel_scancode_py310; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py310.tar.gz
+          tar czf wheel_scancode_py310.tar.gz wheel_scancode_py310
           mkdir -p grype_wheel_py310; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py310/ \;
-          tar czf grype_wheel_py310.tar.gz grype_wheel_py310; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py310.tar.gz
+          tar czf grype_wheel_py310.tar.gz grype_wheel_py310
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi9_py311:
     needs: [build_info, install_scan_tools]
@@ -646,15 +603,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi9 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.11') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.11"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi9).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -694,7 +649,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py311_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi9_py311.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -710,22 +665,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py311; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py311/ \;
-          tar czf wheel_scancode_py311.tar.gz wheel_scancode_py311; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py311.tar.gz
+          tar czf wheel_scancode_py311.tar.gz wheel_scancode_py311
           mkdir -p grype_wheel_py311; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py311/ \;
-          tar czf grype_wheel_py311.tar.gz grype_wheel_py311; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py311.tar.gz
+          tar czf grype_wheel_py311.tar.gz grype_wheel_py311
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi9_py312:
     needs: [build_info, install_scan_tools]
@@ -733,15 +685,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi9 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.12') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.12"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi9).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -781,7 +731,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py312_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi9_py312.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -797,22 +747,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py312; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py312/ \;
-          tar czf wheel_scancode_py312.tar.gz wheel_scancode_py312; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py312.tar.gz
+          tar czf wheel_scancode_py312.tar.gz wheel_scancode_py312
           mkdir -p grype_wheel_py312; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py312/ \;
-          tar czf grype_wheel_py312.tar.gz grype_wheel_py312; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py312.tar.gz
+          tar czf grype_wheel_py312.tar.gz grype_wheel_py312
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi9_py313:
     needs: [build_info, install_scan_tools]
@@ -820,7 +767,7 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi9 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.13') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     continue-on-error: true
     env:
       PYTHON_VERSION: "3.13"
@@ -828,8 +775,6 @@ jobs:
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -869,7 +814,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py313_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi9_py313.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -885,22 +830,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py313; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py313/ \;
-          tar czf wheel_scancode_py313.tar.gz wheel_scancode_py313; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py313.tar.gz
+          tar czf wheel_scancode_py313.tar.gz wheel_scancode_py313
           mkdir -p grype_wheel_py313; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py313/ \;
-          tar czf grype_wheel_py313.tar.gz grype_wheel_py313; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py313.tar.gz
+          tar czf grype_wheel_py313.tar.gz grype_wheel_py313
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi9_py314:
     needs: [build_info, install_scan_tools]
@@ -908,7 +850,7 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi9 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.14') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     continue-on-error: true
     env:
       PYTHON_VERSION: "3.14"
@@ -916,8 +858,6 @@ jobs:
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi9).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -957,7 +897,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py314_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi9_py314.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -973,24 +913,21 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py314; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py314/ \;
-          tar czf wheel_scancode_py314.tar.gz wheel_scancode_py314; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py314.tar.gz
+          tar czf wheel_scancode_py314.tar.gz wheel_scancode_py314
           mkdir -p grype_wheel_py314; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py314/ \;
-          tar czf grype_wheel_py314.tar.gz grype_wheel_py314; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py314.tar.gz
+          tar czf grype_wheel_py314.tar.gz grype_wheel_py314
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
-  # UBI10 wheel jobs (py311–py314 only — py310 not supported on UBI10) -----------
+  # UBI10 wheel jobs (py312–py314 only — py310 not supported on UBI10) ----------
 
   wheel_build_ubi10_py312:
     needs: [build_info, install_scan_tools]
@@ -998,15 +935,13 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi10 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.12') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     env:
       PYTHON_VERSION: "3.12"
       BUILD_SCRIPT: ${{ fromJson(needs.build_info.outputs.script_ubi10).script }}
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi10).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -1046,7 +981,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py312_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi10_py312.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1062,22 +997,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py312; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py312/ \;
-          tar czf wheel_scancode_py312.tar.gz wheel_scancode_py312; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py312.tar.gz
+          tar czf wheel_scancode_py312.tar.gz wheel_scancode_py312
           mkdir -p grype_wheel_py312; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py312/ \;
-          tar czf grype_wheel_py312.tar.gz grype_wheel_py312; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py312.tar.gz
+          tar czf grype_wheel_py312.tar.gz grype_wheel_py312
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi10_py313:
     needs: [build_info, install_scan_tools]
@@ -1085,7 +1017,7 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi10 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.13') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     continue-on-error: true
     env:
       PYTHON_VERSION: "3.13"
@@ -1093,8 +1025,6 @@ jobs:
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi10).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -1134,7 +1064,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py313_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi10_py313.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1150,22 +1080,19 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py313; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py313/ \;
-          tar czf wheel_scancode_py313.tar.gz wheel_scancode_py313; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py313.tar.gz
+          tar czf wheel_scancode_py313.tar.gz wheel_scancode_py313
           mkdir -p grype_wheel_py313; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py313/ \;
-          tar czf grype_wheel_py313.tar.gz grype_wheel_py313; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py313.tar.gz
+          tar czf grype_wheel_py313.tar.gz grype_wheel_py313
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   wheel_build_ubi10_py314:
     needs: [build_info, install_scan_tools]
@@ -1173,7 +1100,7 @@ jobs:
       ${{ inputs.wheel_build == 'true' &&
           needs.build_info.outputs.script_ubi10 != '' &&
           !contains(needs.build_info.outputs.skip_python_versions, '3.14') }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     continue-on-error: true
     env:
       PYTHON_VERSION: "3.14"
@@ -1181,8 +1108,6 @@ jobs:
       TESTED_ON:    ${{ fromJson(needs.build_info.outputs.script_ubi10).tested_on }}
       PACKAGE_NAME: ${{ inputs.package_name }}
       VERSION:      ${{ inputs.version }}
-      GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
-      GHA_CURRENCY_SERVICE_ID:         ${{ secrets.GHA_CURRENCY_SERVICE_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -1222,7 +1147,7 @@ jobs:
           LOG_NAME="${WHEEL_FILE:+${WHEEL_FILE%.whl}_py314_log}.gz"
           [ -z "$WHEEL_FILE" ] && LOG_NAME="wheel_build_log_ubi10_py314.gz"
           gzip wheel_build_log && mv wheel_build_log.gz "$LOG_NAME"
-          bash ./gha-script/upload-scripts/upload_file.sh "$LOG_NAME"
+          echo "[INFO] Log upload skipped (no credentials configured)"
       - name: Run scancode scan on wheel
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1238,27 +1163,23 @@ jobs:
         run: |
           source package-cache/variable.sh
           mkdir -p wheel_scancode_py314; find . -maxdepth 1 -name "*_output.json" ! -name "*_grype_output.json" -exec cp {} wheel_scancode_py314/ \;
-          tar czf wheel_scancode_py314.tar.gz wheel_scancode_py314; bash ./gha-script/upload-scripts/upload_file.sh wheel_scancode_py314.tar.gz
+          tar czf wheel_scancode_py314.tar.gz wheel_scancode_py314
           mkdir -p grype_wheel_py314; find . -maxdepth 1 -name "*_grype_output.json" -exec cp {} grype_wheel_py314/ \;
-          tar czf grype_wheel_py314.tar.gz grype_wheel_py314; bash ./gha-script/upload-scripts/upload_file.sh grype_wheel_py314.tar.gz
+          tar czf grype_wheel_py314.tar.gz grype_wheel_py314
+          echo "[INFO] Scan result upload skipped (no credentials configured)"
       - name: Upload wheel to COS
         run: |
           if ls *.whl 1>/dev/null 2>&1; then
-            sudo chmod a+r *.whl; WHEEL_FILE=$(ls *.whl); SHA256_VALUE=$(cat sha256.sha)
-            chmod +x ./gha-script/upload-scripts/upload_wheel.sh
-            bash ./gha-script/upload-scripts/upload_wheel.sh $WHEEL_FILE $SHA256_VALUE
+            echo "[INFO] Wheel upload skipped (no credentials configured): $(ls *.whl)"
           else
             echo "No wheel file found!"; exit 1
           fi
       - name: Upload CVE report
-        run: |
-          WHEEL_FILE=$(ls *.whl 2>/dev/null | head -n 1)
-          [ -n "$WHEEL_FILE" ] && CVE="${WHEEL_FILE%.whl}_cve_report.json" && [ -f "$CVE" ] && bash ./gha-script/upload-scripts/upload_file.sh "$CVE" || true
+        run: echo "[INFO] CVE report upload skipped (no credentials configured)"
 
   # ---------------------------------------------------------------------------
   # WHEEL LICENSE EXTRACT — one per UBI version.
-  # Downloads per-Python-version scancode JSON from COS and extracts licenses.
-  # Runs after all wheel jobs for that UBI version finish (at least one must succeed).
+  # Runs locally on collected scancode JSON (no COS download needed).
   # ---------------------------------------------------------------------------
 
   wheel_license_extract_ubi8:
@@ -1271,7 +1192,7 @@ jobs:
       needs.build_info.outputs.script_ubi8 != '' &&
       (needs.wheel_build_ubi8_py311.result == 'success' ||
        needs.wheel_build_ubi8_py312.result == 'success')
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1280,18 +1201,13 @@ jobs:
           name: package-cache
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
-      - name: Download scancode JSON outputs from COS and extract licenses
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
+      - name: Extract licenses from local scancode JSON
         run: |
           source package-cache/variable.sh
           source package-cache/scanner-env.sh
           mkdir -p all_wheel_scancode
-          chmod +x ./gha-script/download-scripts/download_file.sh
           for PY_VER in py310 py311 py312 py313 py314; do
             ARCHIVE="wheel_scancode_${PY_VER}.tar.gz"
-            bash ./gha-script/download-scripts/download_file.sh "$ARCHIVE" \
-              || echo "Warning: $ARCHIVE not found on COS (skipped)"
             if [ -f "$ARCHIVE" ]; then
               tar -xzf "$ARCHIVE"
               find "wheel_scancode_${PY_VER}" -type f -name "*.json" \
@@ -1321,7 +1237,7 @@ jobs:
        needs.wheel_build_ubi9_py312.result == 'success' ||
        needs.wheel_build_ubi9_py313.result == 'success' ||
        needs.wheel_build_ubi9_py314.result == 'success')
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1330,18 +1246,13 @@ jobs:
           name: package-cache
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
-      - name: Download scancode JSON outputs from COS and extract licenses
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
+      - name: Extract licenses from local scancode JSON
         run: |
           source package-cache/variable.sh
           source package-cache/scanner-env.sh
           mkdir -p all_wheel_scancode
-          chmod +x ./gha-script/download-scripts/download_file.sh
           for PY_VER in py310 py311 py312 py313 py314; do
             ARCHIVE="wheel_scancode_${PY_VER}.tar.gz"
-            bash ./gha-script/download-scripts/download_file.sh "$ARCHIVE" \
-              || echo "Warning: $ARCHIVE not found on COS (skipped)"
             if [ -f "$ARCHIVE" ]; then
               tar -xzf "$ARCHIVE"
               find "wheel_scancode_${PY_VER}" -type f -name "*.json" \
@@ -1367,7 +1278,7 @@ jobs:
       (needs.wheel_build_ubi10_py312.result == 'success' ||
        needs.wheel_build_ubi10_py313.result == 'success' ||
        needs.wheel_build_ubi10_py314.result == 'success')
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1376,18 +1287,13 @@ jobs:
           name: package-cache
       - name: Extract package cache
         run: tar -xzf package-cache.tar.gz
-      - name: Download scancode JSON outputs from COS and extract licenses
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
+      - name: Extract licenses from local scancode JSON
         run: |
           source package-cache/variable.sh
           source package-cache/scanner-env.sh
           mkdir -p all_wheel_scancode
-          chmod +x ./gha-script/download-scripts/download_file.sh
           for PY_VER in py312 py313 py314; do
             ARCHIVE="wheel_scancode_${PY_VER}.tar.gz"
-            bash ./gha-script/download-scripts/download_file.sh "$ARCHIVE" \
-              || echo "Warning: $ARCHIVE not found on COS (skipped)"
             if [ -f "$ARCHIVE" ]; then
               tar -xzf "$ARCHIVE"
               find "wheel_scancode_${PY_VER}" -type f -name "*.json" \
@@ -1403,13 +1309,11 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # source_scanner_ubiN: scans the cloned source tree (trivy / syft / grype).
-  # One job per UBI version, each depending on its respective build_ubiN job.
-  # Only runs when the corresponding build_ubiN succeeded and has a script.
   # ---------------------------------------------------------------------------
   source_scanner_ubi8:
     needs: [build_ubi8, install_scan_tools]
     if: ${{ always() && inputs.validate_build_script == 'true' && needs.build_ubi8.result == 'success' }}
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package-cache (UBI8)
@@ -1459,8 +1363,6 @@ jobs:
           mv package-cache/grype_source_sbom_results.json \
              package-cache/grype_source_vulnerabilities_results.json source_grype
       - name: Upload Scanner Results
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           mkdir source
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1468,13 +1370,12 @@ jobs:
           find source_syft  -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           find source_grype -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           tar cvzf source_scanner_ubi8.tar.gz source
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh source_scanner_ubi8.tar.gz
+          echo "[INFO] Result upload skipped (no credentials configured)"
 
   source_scanner_ubi9:
     needs: [build_ubi9, install_scan_tools]
     if: ${{ always() && inputs.validate_build_script == 'true' && needs.build_ubi9.result == 'success' }}
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package-cache (UBI9)
@@ -1524,8 +1425,6 @@ jobs:
           mv package-cache/grype_source_sbom_results.json \
              package-cache/grype_source_vulnerabilities_results.json source_grype
       - name: Upload Scanner Results
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           mkdir source
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1533,13 +1432,12 @@ jobs:
           find source_syft  -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           find source_grype -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           tar cvzf source_scanner_ubi9.tar.gz source
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh source_scanner_ubi9.tar.gz
+          echo "[INFO] Result upload skipped (no credentials configured)"
 
   source_scanner_ubi10:
     needs: [build_ubi10, install_scan_tools]
     if: ${{ always() && inputs.validate_build_script == 'true' && needs.build_ubi10.result == 'success' }}
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package-cache (UBI10)
@@ -1589,8 +1487,6 @@ jobs:
           mv package-cache/grype_source_sbom_results.json \
              package-cache/grype_source_vulnerabilities_results.json source_grype
       - name: Upload Scanner Results
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           mkdir source
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1598,8 +1494,7 @@ jobs:
           find source_syft  -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           find source_grype -mindepth 1 -exec mv -t source {} + 2>/dev/null || true
           tar cvzf source_scanner_ubi10.tar.gz source
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh source_scanner_ubi10.tar.gz
+          echo "[INFO] Result upload skipped (no credentials configured)"
 
   # ---------------------------------------------------------------------------
   # build_docker / image_scanner
@@ -1607,7 +1502,7 @@ jobs:
   build_docker:
     needs: build_info
     if: ${{ inputs.build_docker == 'true' }}
-    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'ubuntu-24.04-ppc64le-p10' }}
+    runs-on: ${{ inputs.large-runner-label != '' && inputs.large-runner-label || 'self-hosted' }}
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1626,12 +1521,9 @@ jobs:
           docker save -o package-cache/image.tar "$IMAGE_NAME"
           docker images
       - name: Upload Docker Image
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           source package-cache/variable.sh; source package-cache/scanner-env.sh
-          chmod +x ./gha-script/upload-scripts/upload_docker_image.sh
-          bash ./gha-script/upload-scripts/upload_docker_image.sh
+          echo "[INFO] Docker image upload skipped (no credentials configured)"
       - name: Archive package cache with image
         run: tar -czf package-cache.tar.gz package-cache/
       - name: Upload package-cache with image.tar
@@ -1643,7 +1535,7 @@ jobs:
   image_scanner:
     needs: build_docker
     if: ${{ inputs.build_docker == 'true' }}
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1690,8 +1582,6 @@ jobs:
           mkdir image_grype
           mv grype_image_sbom_results.json grype_image_vulnerabilities_results.json image_grype
       - name: Upload Image Scanner Results
-        env:
-          GHA_CURRENCY_SERVICE_ID_API_KEY: ${{ secrets.GHA_CURRENCY_SERVICE_ID_API_KEY }}
         run: |
           mkdir image
           source package-cache/variable.sh; source package-cache/scanner-env.sh
@@ -1699,13 +1589,10 @@ jobs:
           find image_syft  -mindepth 1 -exec mv -t image {} + 2>/dev/null || true
           find image_grype -mindepth 1 -exec mv -t image {} + 2>/dev/null || true
           tar cvzf image_scanner.tar.gz image
-          chmod +x ./gha-script/upload-scripts/upload_file.sh
-          bash ./gha-script/upload-scripts/upload_file.sh image_scanner.tar.gz
+          echo "[INFO] Result upload skipped (no credentials configured)"
 
   # ---------------------------------------------------------------------------
   # final_summary: runs after all parallel tracks complete.
-  # Uses always() so it runs even when optional jobs (ubi8/ubi10) were skipped.
-  # Requires at least one of build_ubi8/ubi9/ubi10 to have succeeded.
   # ---------------------------------------------------------------------------
   final_summary:
     name: Final Summary Stage
@@ -1724,7 +1611,7 @@ jobs:
       (needs.build_ubi8.result == 'success' ||
        needs.build_ubi9.result == 'success' ||
        needs.build_ubi10.result == 'success')
-    runs-on: ubuntu-24.04-ppc64le-p10
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Download package-cache
@@ -1743,8 +1630,6 @@ jobs:
         env:
           PACKAGE_NAME: ${{ inputs.package_name }}
           VERSION:      ${{ inputs.version }}
-          IAM_WRITER_API_KEY:    ${{ secrets.IAM_WRITER_API_KEY }}
-          SERVICE_INSTANCE_ID:   ${{ secrets.SERVICE_INSTANCE_ID }}
         run: |
           chmod +x package-cache/variable.sh
           chmod +x package-cache/scanner-env.sh
