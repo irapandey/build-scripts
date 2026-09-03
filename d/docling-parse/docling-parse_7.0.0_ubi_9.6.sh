@@ -31,15 +31,17 @@ SOURCE=Github
 
 # Install dependencies
 echo "Installing required packages..."
-yum install -y git wget gcc gcc-c++ python3.12-devel python3.12-pip zlib zlib-devel libjpeg-devel libjpeg-turbo libjpeg-turbo-devel freetype-devel libxml2-devel libxslt-devel libtiff-devel lcms2-devel
+yum install -y git wget gcc gcc-c++ python3.12-devel python3.12-pip zlib zlib-devel libjpeg-devel libjpeg-turbo libjpeg-turbo-devel freetype-devel libxml2-devel libxslt-devel libtiff-devel lcms2-devel openjpeg2-devel
 python3.12 -m pip install build pytest wheel
 python3.12 -m pip install huggingface-hub
-# Reinstall Pillow from source so it picks up libtiff and lcms2 just installed above
-python3.12 -m pip install --no-binary pillow --force-reinstall pillow
 
 export PATH=$PATH:/usr/local/bin/
 export PATH=/opt/rh/gcc-toolset-13/root/usr/bin:$PATH
 export LD_LIBRARY_PATH=/opt/rh/gcc-toolset-13/root/usr/lib64:$LD_LIBRARY_PATH
+
+# Reinstall Pillow from source AFTER the compiler PATH is set so that it picks
+# up gcc-toolset-13 and all native libraries (libtiff, lcms2, openjpeg2).
+python3.12 -m pip install --no-binary pillow --force-reinstall pillow
 
 # Clone or extract the package
 if [[ "$PACKAGE_URL" == *github.com* ]]; then
