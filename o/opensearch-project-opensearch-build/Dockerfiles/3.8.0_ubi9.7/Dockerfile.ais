@@ -121,9 +121,6 @@ ENV PATH=$PATH:$JAVA_HOME/bin:$OPENSEARCH_HOME/bin
 # Add k-NN lib directory to library loading path variable
 ENV LD_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib"
 
-# Disable FIPS approved-only mode to allow standard passwords
-ENV OPENSEARCH_JAVA_OPTS="-Dorg.bouncycastle.fips.approved_only=false"
-
 # OpenShift restricted-v2 compatibility: Fix ownership and permissions for random UID
 # COPY --chown may not work correctly, so explicitly set ownership and permissions
 RUN chown -R $UID:0 $OPENSEARCH_HOME && \

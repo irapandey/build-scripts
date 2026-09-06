@@ -189,13 +189,13 @@ index bbe39bfd..108ae8cb 100755
  
  # Build project and publish to maven local.
  echo "Building and publishing OpenSearch project to Maven Local"
--./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
  
  # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
  echo "Publishing OpenSearch to Test Repository"
--./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
  
  # Copy maven publications to be promoted
  echo "Copying Maven publications to $OUTPUT/maven/org"
@@ -203,8 +203,8 @@ index bbe39bfd..108ae8cb 100755
  
  echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
  
--./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
  
  # Copy artifact to dist folder in bundle build output
  echo "Copying artifact to ${OUTPUT}/dist"
@@ -212,8 +212,8 @@ index bbe39bfd..108ae8cb 100755
  echo "Building core plugins..."
  mkdir -p "${OUTPUT}/core-plugins"
  cd plugins
--../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
-+../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease -Pcrypto.standard=FIPS-140-3
+-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
  cd ..
  for plugin in plugins/*; do
    PLUGIN_NAME=$(basename "$plugin")
@@ -225,13 +225,13 @@ index 3fa912bf..66c9f838 100755
  
  # Build project and publish to maven local.
  echo "Building and publishing OpenSearch project to Maven Local"
--./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  
  # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
  echo "Publishing OpenSearch to Test Repository"
--./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  
  # Copy maven publications to be promoted
  echo "Copying Maven publications to $OUTPUT/maven/org"
@@ -239,8 +239,8 @@ index 3fa912bf..66c9f838 100755
  
  echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
  
--./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  
  # Copy artifact to dist folder in bundle build output
  echo "Copying artifact to ${OUTPUT}/dist"
@@ -248,8 +248,8 @@ index 3fa912bf..66c9f838 100755
  echo "Building core plugins..."
  mkdir -p "${OUTPUT}/core-plugins"
  cd plugins
--../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  cd ..
  for plugin in plugins/*; do
    PLUGIN_NAME=$(basename "$plugin")
@@ -261,13 +261,13 @@ index 0797262e..6be344a8 100755
  
  # Build project and publish to maven local.
  echo "Building and publishing OpenSearch project to Maven Local"
--./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
  echo "Publishing OpenSearch to Test Repository"
--./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  # Copy maven publications to be promoted
  echo "Copying Maven publications to $OUTPUT/maven/org"
@@ -275,8 +275,8 @@ index 0797262e..6be344a8 100755
  
  echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
  
--./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  # Copy artifact to dist folder in bundle build output
  echo "Copying artifact to ${OUTPUT}/dist"
@@ -284,8 +284,8 @@ index 0797262e..6be344a8 100755
  echo "Building core plugins..."
  mkdir -p "${OUTPUT}/core-plugins"
  cd plugins
--../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
  cd ..
  for plugin in plugins/*; do
    PLUGIN_NAME=$(basename "$plugin")
@@ -320,8 +320,8 @@ index 71d60f9a..0c8a62db 100755
  
  # Sandbox Plugins
  echo "Building sandbox plugins..."
--../../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+../../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-../../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++../../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  INSTALL_ORDER=1
  for plugin in ./*; do
    PLUGIN_NAME=$(basename "$plugin")
@@ -329,8 +329,8 @@ index 71d60f9a..0c8a62db 100755
  # Rustlib
  cd ../
  echo "Specifically saving rustlib..."
--../gradlew :sandbox:libs:dataformat-native:buildRustLibrary -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
-+../gradlew --console=plain :sandbox:libs:dataformat-native:buildRustLibrary -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease -Pcrypto.standard=FIPS-140-3
+-../gradlew :sandbox:libs:dataformat-native:buildRustLibrary -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
++../gradlew --console=plain :sandbox:libs:dataformat-native:buildRustLibrary -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -Dsandbox.enabled=true -PrustRelease
  for libext in so dylib dll; do
    cp -v ./libs/dataformat-native/rust/target/release/libopensearch_native."$libext" "${OUTPUT_REAL}"/dist/ || echo "$libext not found"
  done
@@ -566,17 +566,17 @@ index b162b4e0..3df3a026 100644
  [[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
  [ -z "$OUTPUT" ] && OUTPUT=artifacts
  
--./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
--./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  mkdir -p ./$OUTPUT/plugins
  notifCoreZipPath=$(ls core/build/distributions/ | grep .zip)
  cp -v core/build/distributions/$notifCoreZipPath ./$OUTPUT/plugins
  
--./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  mkdir -p $OUTPUT/maven/org/opensearch/plugin
  cp -r ./build/local-staging-repo/org/opensearch/plugin/opensearch-notifications-core $OUTPUT/maven/org/opensearch/plugin/
 diff --git a/scripts/components/notifications/build.sh b/scripts/components/notifications/build.sh
@@ -587,18 +587,18 @@ index bdadef1b..8f961b29 100644
  [[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
  [ -z "$OUTPUT" ] && OUTPUT=artifacts
  
--./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
--./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  mkdir -p ./$OUTPUT/plugins
  
  notifCoreZipPath=$(ls notifications/build/distributions/ | grep .zip)
  cp -v notifications/build/distributions/$notifCoreZipPath ./$OUTPUT/plugins
  
--./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  mkdir -p $OUTPUT/maven/org/opensearch/plugin
  cp -r ./build/local-staging-repo/org/opensearch/plugin/notifications $OUTPUT/maven/org/opensearch/plugin/
 diff --git a/scripts/components/opensearch-jvector/build.sh b/scripts/components/opensearch-jvector/build.sh
@@ -710,8 +710,7 @@ index 00000000..11c3ca7b
 +./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true \
 +    -Dopensearch.version=$VERSION \
 +    -Dbuild.snapshot=$SNAPSHOT \
-+    -Dbuild.version_qualifier=$QUALIFIER \
-+    -Pcrypto.standard=FIPS-140-3
++    -Dbuild.version_qualifier=$QUALIFIER
 +
 +zipPath=$(find "$(pwd)/build/distributions" -name \*.zip | head -1)
 +
@@ -781,14 +780,12 @@ index 00000000..11c3ca7b
 +    -x bundlePlugin \
 +    -Dopensearch.version=$VERSION \
 +    -Dbuild.snapshot=$SNAPSHOT \
-+    -Dbuild.version_qualifier=$QUALIFIER \
-+    -Pcrypto.standard=FIPS-140-3
++    -Dbuild.version_qualifier=$QUALIFIER
 +./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository \
 +    -x bundlePlugin \
 +    -Dopensearch.version=$VERSION \
 +    -Dbuild.snapshot=$SNAPSHOT \
-+    -Dbuild.version_qualifier=$QUALIFIER \
-+    -Pcrypto.standard=FIPS-140-3
++    -Dbuild.version_qualifier=$QUALIFIER
 +
 +echo "COPY ${distributions}/*.zip"
 +mkdir -p $OUTPUT/plugins
@@ -824,8 +821,8 @@ index 518c722a..67094c45 100755
  
  mkdir -p $OUTPUT
  
--./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  
  zipPath=$(find . -path \*build/distributions/*.zip)
  distributions="$(dirname "${zipPath}")"
@@ -833,10 +830,10 @@ index 518c722a..67094c45 100755
  cp ${distributions}/*.zip ./$OUTPUT/plugins
  
  # Publish plugin zips to maven
--./gradlew publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
--./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
-+./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Pcrypto.standard=FIPS-140-3
+-./gradlew publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
  mkdir -p $OUTPUT/maven/org/opensearch
  cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
 diff --git a/security.patch b/security.patch
