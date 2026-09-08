@@ -1,0 +1,1548 @@
+From 255a0dbaf48c76d5284ecc3e4fe64728cba1104b Mon Sep 17 00:00:00 2001
+From: irapandey <ira.pandey2001@gmail.com>
+Date: Tue, 8 Sep 2026 22:03:34 +0530
+Subject: [PATCH] patch
+
+Signed-off-by: irapandey <ira.pandey2001@gmail.com>
+---
+ common-utils.patch                            |  75 +++++++
+ ltr.patch                                     |  19 ++
+ opensearch.patch                              | 197 ++++++++++++++++++
+ security.patch                                |  30 +++
+ scripts/components/OpenSearch-DataFusion/build.sh |   8 +-
+ scripts/components/OpenSearch/build.sh        |   8 +-
+ scripts/components/OpenSearch/integtest.sh    |   2 +-
+ scripts/components/alerting/build.sh          | 106 ++++++++++
+ scripts/components/alerting/integtest.sh      |   2 +-
+ scripts/components/cross-cluster-replication/build.sh | 94 +++++++++
+ scripts/components/index-management/build.sh  |  94 +++++++++
+ scripts/components/k-NN/build.sh              | 198 ++++++++++++++++++
+ scripts/components/k-NN/integtest.sh          |   4 +-
+ scripts/components/notifications-core/build.sh |   6 +-
+ scripts/components/notifications/build.sh     |   6 +-
+ scripts/components/opensearch-observability/build.sh | 94 +++++++++
+ scripts/components/opensearch-reports/build.sh |  93 ++++++++
+ scripts/default/bwctest.sh                    |   2 +-
+ scripts/default/integtest.sh                  |   2 +-
+ scripts/default/opensearch/build.sh           |   6 +-
+ src/assemble_workflow/bundle_opensearch.py    |  31 +++
+ src/build_workflow/build_args.py              |   1 +
+ src/build_workflow/builder_from_source.py     | 114 +++++++++-
+ src/ci_workflow/ci_check_gradle_dependencies.py |   2 +-
+ src/ci_workflow/ci_check_gradle_properties.py |   2 +-
+ src/ci_workflow/ci_check_gradle_publish_to_maven_local.py |   2 +-
+ src/manifests_workflow/README.md              |   2 +-
+ src/manifests_workflow/component_opensearch.py |   2 +-
+ tests/tests_ci_workflow/test_ci_check_gradle_dependencies.py | 10 +-
+ tests/tests_ci_workflow/test_ci_check_gradle_dependencies_opensearch.py |   8 +-
+ tests/tests_ci_workflow/test_ci_check_gradle_properties.py |   6 +-
+ tests/tests_ci_workflow/test_ci_check_gradle_publish_to_maven_local.py |   6 +-
+ tests/tests_manifests_workflow/test_component_opensearch.py |   6 +-
+ 33 files changed, 1188 insertions(+), 47 deletions(-)
+ create mode 100644 common-utils.patch
+ create mode 100644 ltr.patch
+ create mode 100644 opensearch.patch
+ create mode 100644 security.patch
+ create mode 100755 scripts/components/alerting/build.sh
+ create mode 100644 scripts/components/cross-cluster-replication/build.sh
+ create mode 100755 scripts/components/index-management/build.sh
+ create mode 100644 scripts/components/k-NN/build.sh
+ create mode 100755 scripts/components/opensearch-observability/build.sh
+ create mode 100755 scripts/components/opensearch-reports/build.sh
+
+diff --git a/common-utils.patch b/common-utils.patch
+new file mode 100644
+index 00000000..ecc0b5cf
+--- /dev/null
++++ b/common-utils.patch
+@@ -0,0 +1,75 @@
++diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
++index 984e1ea..05c4b1e 100644
++--- a/.github/workflows/ci.yml
+++++ b/.github/workflows/ci.yml
++@@ -48,8 +48,8 @@ jobs:
++       - name: Build and Test
++         run: |
++           chown -R 1000:1000 `pwd`
++-          su `id -un 1000` -c "./gradlew build &&
++-                               ./gradlew publishToMavenLocal"
+++          su `id -un 1000` -c "./gradlew --console=plain build &&
+++                               ./gradlew --console=plain publishToMavenLocal"
++           
++       - name: Upload Coverage Report
++         uses: codecov/codecov-action@v1
++@@ -77,11 +77,11 @@ jobs:
++ 
++       - name: Build and Test
++         run: |
++-          ./gradlew build
+++          ./gradlew --console=plain build
++ 
++       - name: Publish to Maven Local
++         run: |
++-          ./gradlew publishToMavenLocal
+++          ./gradlew --console=plain publishToMavenLocal
++           
++       - name: Upload Coverage Report
++         uses: codecov/codecov-action@v1
++diff --git a/.github/workflows/maven-publish.yml b/.github/workflows/maven-publish.yml
++index 23dfe73..e7894da 100644
++--- a/.github/workflows/maven-publish.yml
+++++ b/.github/workflows/maven-publish.yml
++@@ -43,4 +43,4 @@ jobs:
++ 
++       - name: publish snapshots to maven
++         run: |
++-          ./gradlew publishShadowPublicationToSnapshotsRepository
+++          ./gradlew --console=plain publishShadowPublicationToSnapshotsRepository
++diff --git a/DEVELOPER_GUIDE.md b/DEVELOPER_GUIDE.md
++index 8975ecb..eb36fa3 100644
++--- a/DEVELOPER_GUIDE.md
+++++ b/DEVELOPER_GUIDE.md
++@@ -25,9 +25,9 @@ OpenSearch components build using Java 21 at a minimum. This means you must have
++ To build from the command line, use `./gradlew`.
++ 
++ ```
++-./gradlew clean
++-./gradlew build
++-./gradlew publishToMavenLocal
+++./gradlew --console=plain clean
+++./gradlew --console=plain build
+++./gradlew --console=plain publishToMavenLocal
++ ```
++ 
++ ### Using IntelliJ IDEA
++diff --git a/scripts/build.sh b/scripts/build.sh
++index e0495d4..139e648 100755
++--- a/scripts/build.sh
+++++ b/scripts/build.sh
++@@ -64,8 +64,8 @@ fi
++ [[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++ [ -z "$OUTPUT" ] && OUTPUT=artifacts
++ 
++-./gradlew build -x test -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++-./gradlew publishShadowPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++-./gradlew publishShadowPublicationToStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain build -x test -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain publishShadowPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain publishShadowPublicationToStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++ mkdir -p $OUTPUT/maven/org/opensearch
++ cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
++
+
+diff --git a/ltr.patch b/ltr.patch
+new file mode 100644
+index 00000000..e631fc46
+--- /dev/null
++++ b/ltr.patch
+@@ -0,0 +1,19 @@
++diff --git a/build.gradle b/build.gradle
++index 78ee358..0731a94 100644
++--- a/build.gradle
+++++ b/build.gradle
++@@ -270,7 +270,10 @@ plugins.withId('com.diffplug.spotless') {
++     java {
++       removeUnusedImports()
++       importOrder 'java', 'javax', 'org', 'com'
++-      eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://mirror.umd.edu/eclipse/")).configFile rootProject.file('.eclipseformat.xml')
+++      def runningSpotlessTask = gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('spotless') }
+++      if (runningSpotlessTask) {
+++        eclipse('4.31').configFile rootProject.file('.eclipseformat.xml')
+++      }
++     }
++   }
++ }
++-- 
++2.51.2
++
+
+diff --git a/opensearch.patch b/opensearch.patch
+new file mode 100644
+index 00000000..5f2b9e03
+--- /dev/null
++++ b/opensearch.patch
+@@ -0,0 +1,197 @@
++From c54e3a1bdc91fc67b44a59a2e13947fee83f8f9f Mon Sep 17 00:00:00 2001
++From: irapandey <ira.pandey2001@gmail.com>
++Date: Wed, 9 Sep 2026 11:03:19 +0530
++Subject: [PATCH] patch
++
++Signed-off-by: irapandey <ira.pandey2001@gmail.com>
++---
++ build.gradle                                              | 2 +-
++ buildSrc/src/main/groovy/org/opensearch/gradle/CheckCompatibilityTask.groovy   | 2 +-
++ buildSrc/src/main/java/org/opensearch/gradle/info/GlobalBuildInfoPlugin.java | 2 +-
++ buildSrc/src/main/java/org/opensearch/gradle/test/GradleDistroTestTask.java  | 2 +-
++ gradle/formatting.gradle                                  | 4 ++--
++ plugins/examples/custom-settings/src/test/java/org/opensearch/example/customsettings/ExampleCustomSettingsConfigTests.java  | 2 +-
++ plugins/examples/custom-settings/src/yamlRestTest/java/org/opensearch/example/customsettings/ExampleCustomSettingsClientYamlTestSuiteIT.java       | 2 +-
++ plugins/examples/rest-handler/src/yamlRestTest/java/org/opensearch/example/resthandler/ExampleRestHandlerClientYamlTestSuiteIT.java                 | 2 +-
++ sandbox/build.gradle                                      | 4 ++--
++ scripts/build.sh                                          | 8 ++++----
++ test/framework/src/main/java/org/opensearch/test/junit/listeners/ReproduceInfoPrinter.java        | 2 +-
++ 11 files changed, 16 insertions(+), 16 deletions(-)
++
++diff --git a/build.gradle b/build.gradle
++index 37684452586..59a91c90eed 100644
++--- a/build.gradle
+++++ b/build.gradle
++@@ -230,7 +230,7 @@ tasks.register("verifyVersions") {
++     String ciYml = file(".ci/bwcVersions").text
++     BuildParams.bwcVersions.indexCompatible.each {
++       if (ciYml.contains("\"$it\"\n") == false) {
++-        throw new Exception(".ci/bwcVersions is outdated, run `./gradlew updateCIBwcVersions` and check in the results");
+++        throw new Exception(".ci/bwcVersions is outdated, run `./gradlew --console=plain updateCIBwcVersions` and check in the results");
++       }
++     }
++   }
++diff --git a/buildSrc/src/main/groovy/org/opensearch/gradle/CheckCompatibilityTask.groovy b/buildSrc/src/main/groovy/org/opensearch/gradle/CheckCompatibilityTask.groovy
++index 11a57ab7765..f58e3238f30 100644
++--- a/buildSrc/src/main/groovy/org/opensearch/gradle/CheckCompatibilityTask.groovy
+++++ b/buildSrc/src/main/groovy/org/opensearch/gradle/CheckCompatibilityTask.groovy
++@@ -53,7 +53,7 @@ class CheckCompatibilityTask extends DefaultTask {
++                     }
++                     project.exec {
++                         workingDir = tempDir
++-                        executable = (OperatingSystem.current().isWindows()) ? 'gradlew.bat' : './gradlew'
+++                        executable = (OperatingSystem.current().isWindows()) ? 'gradlew.bat' : './gradlew --console=plain'
++                         args ('assemble')
++                         standardOutput stdout
++                         errorOutput errout
++diff --git a/buildSrc/src/main/java/org/opensearch/gradle/info/GlobalBuildInfoPlugin.java b/buildSrc/src/main/java/org/opensearch/gradle/info/GlobalBuildInfoPlugin.java
++index a42121f7da1..cbd677fb03a 100644
++--- a/buildSrc/src/main/java/org/opensearch/gradle/info/GlobalBuildInfoPlugin.java
+++++ b/buildSrc/src/main/java/org/opensearch/gradle/info/GlobalBuildInfoPlugin.java
++@@ -308,7 +308,7 @@ public class GlobalBuildInfoPlugin implements Plugin<Project> {
++                 Locale.ROOT,
++                 "$%s must be set to build OpenSearch. "
++                     + "Note that if the variable was just set you "
++-                    + "might have to run `./gradlew --stop` for "
+++                    + "might have to run `./gradlew --console=plain --stop` for "
++                     + "it to be picked up. See https://github.com/elastic/elasticsearch/issues/31399 details.",
++                 getJavaHomeEnvVarName(version)
++             );
++diff --git a/buildSrc/src/main/java/org/opensearch/gradle/test/GradleDistroTestTask.java b/buildSrc/src/main/java/org/opensearch/gradle/test/GradleDistroTestTask.java
++index caac3ede985..35062a328ef 100644
++--- a/buildSrc/src/main/java/org/opensearch/gradle/test/GradleDistroTestTask.java
+++++ b/buildSrc/src/main/java/org/opensearch/gradle/test/GradleDistroTestTask.java
++@@ -96,7 +96,7 @@ public class GradleDistroTestTask extends VagrantShellTask {
++     private List<String> getScript(boolean isWindows) {
++         String cacheDir = project.getBuildDir() + "/gradle-cache";
++         StringBuilder line = new StringBuilder();
++-        line.append(isWindows ? "& .\\gradlew " : "./gradlew ");
+++        line.append(isWindows ? "& .\\gradlew " : "./gradlew --console=plain ");
++         line.append(taskName);
++         line.append(" --project-cache-dir ");
++         line.append(isWindows ? VagrantMachine.convertWindowsPath(project, cacheDir) : VagrantMachine.convertLinuxPath(project, cacheDir));
++diff --git a/gradle/formatting.gradle b/gradle/formatting.gradle
++index 11c59c4df80..e262bfe602d 100644
++--- a/gradle/formatting.gradle
+++++ b/gradle/formatting.gradle
++@@ -42,11 +42,11 @@ import org.opensearch.gradle.BuildPlugin
++  *
++  * To perform a reformat, run:
++  *
++- *     ./gradlew spotlessApply
+++ *     ./gradlew --console=plain spotlessApply
++  *
++  * To check the current format, run:
++  *
++- *     ./gradlew spotlessJavaCheck
+++ *     ./gradlew --console=plain spotlessJavaCheck
++  *
++  * This is also carried out by the `precommit` task.
++  *
++diff --git a/scripts/build.sh b/scripts/build.sh
++index a0917776507..afbbbc34e03 100755
++--- a/scripts/build.sh
+++++ b/scripts/build.sh
++@@ -73,10 +73,10 @@ fi
++ mkdir -p $OUTPUT/maven/org/opensearch
++ 
++ # Build project and publish to maven local.
++-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++ 
++ # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
++-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++ 
++ # Copy maven publications to be promoted
++ cp -r ./build/local-test-repo/org/opensearch "${OUTPUT}"/maven/org
++@@ -139,7 +139,7 @@ esac
++ 
++ echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
++ 
++-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++ 
++ # Copy artifact to dist folder in bundle build output
++ [[ "$SNAPSHOT" == "true" ]] && IDENTIFIER="-SNAPSHOT"
++@@ -150,7 +150,7 @@ cp distribution/$TYPE/$TARGET/build/distributions/$ARTIFACT_BUILD_NAME "${OUTPUT
++ echo "Building core plugins..."
++ mkdir -p "${OUTPUT}/core-plugins"
++ cd plugins
++-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
+++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
++ cd ..
++ for plugin in plugins/*; do
++   PLUGIN_NAME=$(basename "$plugin")
++diff --git a/test/framework/src/main/java/org/opensearch/test/junit/listeners/ReproduceInfoPrinter.java b/test/framework/src/main/java/org/opensearch/test/junit/listeners/ReproduceInfoPrinter.java
++index dfbc607b058..0ea6266c94a 100644
++--- a/test/framework/src/main/java/org/opensearch/test/junit/listeners/ReproduceInfoPrinter.java
+++++ b/test/framework/src/main/java/org/opensearch/test/junit/listeners/ReproduceInfoPrinter.java
++@@ -87,7 +87,7 @@ public class ReproduceInfoPrinter extends RunListener {
++             return;
++         }
++ 
++-        final String gradlew = Constants.WINDOWS ? "gradlew" : "./gradlew";
+++        final String gradlew = Constants.WINDOWS ? "gradlew" : "./gradlew --console=plain";
++         final StringBuilder b = new StringBuilder("REPRODUCE WITH: " + gradlew + " ");
++         String task = System.getProperty("tests.task");
++ 
++-- 
++2.51.2
++
+
+diff --git a/security.patch b/security.patch
+new file mode 100644
+index 00000000..916591fb
+--- /dev/null
++++ b/security.patch
+@@ -0,0 +1,30 @@
++diff --git a/build.gradle b/build.gradle
++index 42401ee1..f552e082 100644
++--- a/build.gradle
+++++ b/build.gradle
++@@ -487,6 +487,7 @@ configurations {
++             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
++             force "io.netty:netty-buffer:${versions.netty}"
++             force "io.netty:netty-codec-base:${versions.netty}"
+++            force "io.netty:netty-codec-compression:${versions.netty}"
++             force "io.netty:netty-codec-http:${versions.netty}"
++             force "io.netty:netty-codec-http2:${versions.netty}"
++             force "io.netty:netty-codec-http3:${versions.netty}"
++diff --git a/libs/opensaml/build.gradle b/libs/opensaml/build.gradle
++index 49affbb4..77210e79 100644
++--- a/libs/opensaml/build.gradle
+++++ b/libs/opensaml/build.gradle
++@@ -26,6 +26,10 @@ configurations.all {
++         force "org.bouncycastle:bcprov-jdk18on:1.84"
++         force "org.apache.commons:commons-lang3:${versions.commonslang}"
++         force "tools.jackson.core:jackson-core:${versions.jackson3}"
+++        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+++        force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+++        force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+++        force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
++     }
++ }
++ 
++-- 
++2.51.2
++
+
+diff --git a/scripts/components/OpenSearch-DataFusion/build.sh b/scripts/components/OpenSearch-DataFusion/build.sh
+index 1b9fac8a..efd5699f 100755
+--- a/scripts/components/OpenSearch-DataFusion/build.sh
++++ b/scripts/components/OpenSearch-DataFusion/build.sh
+@@ -75,11 +75,11 @@ mkdir -p $OUTPUT/maven/org/opensearch
+ 
+ # Build project and publish to maven local.
+ echo "Building and publishing OpenSearch project to Maven Local"
+-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
+ 
+ # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
+ echo "Publishing OpenSearch to Test Repository"
+-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
+ 
+ # Copy maven publications to be promoted
+ echo "Copying Maven publications to $OUTPUT/maven/org"
+@@ -164,7 +164,7 @@ esac
+ 
+ echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
+ 
+-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
+ 
+ # Copy artifact to dist folder in bundle build output
+ echo "Copying artifact to ${OUTPUT}/dist"
+@@ -176,7 +176,7 @@ cp distribution/$TYPE/$TARGET/build/distributions/$ARTIFACT_BUILD_NAME "${OUTPUT
+ echo "Building core plugins..."
+ mkdir -p "${OUTPUT}/core-plugins"
+ cd plugins
+-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER -PrustRelease
+ cd ..
+ for plugin in plugins/*; do
+   PLUGIN_NAME=$(basename "$plugin")
+
+diff --git a/scripts/components/OpenSearch/build.sh b/scripts/components/OpenSearch/build.sh
+index e9e4bf81..c68cc03f 100755
+--- a/scripts/components/OpenSearch/build.sh
++++ b/scripts/components/OpenSearch/build.sh
+@@ -75,11 +75,11 @@ mkdir -p $OUTPUT/maven/org/opensearch
+ 
+ # Build project and publish to maven local.
+ echo "Building and publishing OpenSearch project to Maven Local"
+-./gradlew publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ # Publish to existing test repo, using this to stage release versions of the artifacts that can be released from the same build.
+ echo "Publishing OpenSearch to Test Repository"
+-./gradlew publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishNebulaPublicationToTestRepository -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ # Copy maven publications to be promoted
+ echo "Copying Maven publications to $OUTPUT/maven/org"
+@@ -164,7 +164,7 @@ esac
+ 
+ echo "Building OpenSearch for $PLATFORM-$DISTRIBUTION-$ARCHITECTURE"
+ 
+-./gradlew :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain :distribution:$TYPE:$TARGET:assemble -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ # Copy artifact to dist folder in bundle build output
+ echo "Copying artifact to ${OUTPUT}/dist"
+@@ -176,7 +176,7 @@ cp distribution/$TYPE/$TARGET/build/distributions/$ARTIFACT_BUILD_NAME "${OUTPUT
+ echo "Building core plugins..."
+ mkdir -p "${OUTPUT}/core-plugins"
+ cd plugins
+-../gradlew assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
++../gradlew --console=plain assemble -Dbuild.snapshot="$SNAPSHOT" -Dbuild.version_qualifier=$QUALIFIER
+ cd ..
+ for plugin in plugins/*; do
+   PLUGIN_NAME=$(basename "$plugin")
+
+diff --git a/scripts/components/OpenSearch/integtest.sh b/scripts/components/OpenSearch/integtest.sh
+index dce75c86..3be5ee8d 100644
+--- a/scripts/components/OpenSearch/integtest.sh
++++ b/scripts/components/OpenSearch/integtest.sh
+@@ -13,7 +13,7 @@ echo "Check if distribution is deb or rpm on linux"
+ if [ "$OSTYPE" = "linux-gnu" ]; then
+     if (dpkg -s opensearch > /dev/null 2>&1) || (rpm -q opensearch > /dev/null 2>&1); then
+         echo "Run systemd integTest for OpenSearch core engine"
+-        ./gradlew qa:systemd-test:integTest --tests org.opensearch.systemdinteg.SystemdIntegTests --console=plain
++        ./gradlew --console=plain qa:systemd-test:integTest --tests org.opensearch.systemdinteg.SystemdIntegTests --console=plain
+     else
+         echo "No deb or rpm installed detected, skip test"
+     fi
+
+diff --git a/scripts/components/alerting/build.sh b/scripts/components/alerting/build.sh
+new file mode 100755
+index 00000000..04cb8c3e
+--- /dev/null
++++ b/scripts/components/alerting/build.sh
+@@ -0,0 +1,106 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source source license.
++#
++# alerting's root build.gradle hardcodes common_utils.version to "3.5.0.0-SNAPSHOT"
++# instead of using the computed opensearch_build variable.  This breaks non-snapshot
++# builds (and snapshot builds where common-utils was built without a qualifier) because
++# the locally-built common-utils artifact carries the resolved version string, not the
++# hardcoded snapshot suffix.  Pass -Dcommon_utils.version explicitly so Gradle uses the
++# same version string that was published to mavenLocal() by the earlier common-utils build.
++# Ref: https://github.com/opensearch-project/alerting/blob/3.5.0.0/build.gradle#L18
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture, ignored."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++# Compute the plugin version the same way alerting's build.gradle does:
++#   version_tokens[0] + '.0' [+ '-' + qualifier] [+ '-SNAPSHOT']
++# This must match what common-utils published to mavenLocal().
++PLUGIN_VERSION=$(echo $VERSION | cut -d'-' -f1).0
++[[ ! -z "$QUALIFIER" ]] && PLUGIN_VERSION=$PLUGIN_VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && PLUGIN_VERSION=$PLUGIN_VERSION-SNAPSHOT
++
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true \
++    -Dopensearch.version=$VERSION \
++    -Dbuild.version_qualifier=$QUALIFIER \
++    -Dbuild.snapshot=$SNAPSHOT \
++    -Dcommon_utils.version=$PLUGIN_VERSION
++
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++mkdir -p $OUTPUT/plugins
++cp ./alerting/build/distributions/*.zip $OUTPUT/plugins
++
++./gradlew --console=plain publishToMavenLocal \
++    -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER \
++    -Dcommon_utils.version=$PLUGIN_VERSION
++./gradlew --console=plain publishShadowPublicationToStagingRepository \
++    -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER \
++    -Dcommon_utils.version=$PLUGIN_VERSION
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository \
++    -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER \
++    -Dcommon_utils.version=$PLUGIN_VERSION
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/components/alerting/integtest.sh b/scripts/components/alerting/integtest.sh
+index b12b5e5d..b27311b1 100755
+--- a/scripts/components/alerting/integtest.sh
++++ b/scripts/components/alerting/integtest.sh
+@@ -102,4 +102,4 @@ fi
+ USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
+ PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
+ 
+-./gradlew integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Dsecurity=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
++./gradlew --console=plain integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Dsecurity=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+
+diff --git a/scripts/components/cross-cluster-replication/build.sh b/scripts/components/cross-cluster-replication/build.sh
+new file mode 100644
+index 00000000..4ccc852b
+--- /dev/null
++++ b/scripts/components/cross-cluster-replication/build.sh
+@@ -0,0 +1,94 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source license.
++#
++# cross-cluster-replication ships LICENSE and NOTICE without a .txt extension,
++# but OpenSearch 3.x build-tools opensearchplugin validation requires LICENSE.txt
++# and NOTICE.txt. Create symlinks before invoking Gradle so the validator passes.
++# Ref: https://github.com/opensearch-project/cross-cluster-replication/blob/3.5.0.0/build.gradle
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture, ignored."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++mkdir -p $OUTPUT
++
++# OpenSearch 3.x build-tools requires LICENSE.txt and NOTICE.txt.
++# The repository only has extensionless LICENSE and NOTICE files.
++[ -f LICENSE ] && [ ! -f LICENSE.txt ] && ln -s LICENSE LICENSE.txt
++[ -f NOTICE ]  && [ ! -f NOTICE.txt ]  && ln -s NOTICE  NOTICE.txt
++
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++
++zipPath=$(find . -path \*build/distributions/*.zip)
++distributions="$(dirname "${zipPath}")"
++
++echo "COPY ${distributions}/*.zip"
++mkdir -p $OUTPUT/plugins
++cp ${distributions}/*.zip ./$OUTPUT/plugins
++
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/components/index-management/build.sh b/scripts/components/index-management/build.sh
+new file mode 100755
+index 00000000..ab81f796
+--- /dev/null
++++ b/scripts/components/index-management/build.sh
+@@ -0,0 +1,94 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source source license.
++#
++# index-management ships LICENSE and NOTICE without a .txt extension,
++# but OpenSearch 3.x build-tools opensearchplugin validation requires LICENSE.txt
++# and NOTICE.txt. Create symlinks before invoking Gradle so the validator passes.
++# Ref: https://github.com/opensearch-project/index-management/blob/3.5.0.0/build.gradle
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture, ignored."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++mkdir -p $OUTPUT
++
++# OpenSearch 3.x build-tools requires LICENSE.txt and NOTICE.txt.
++# The repository only has extensionless LICENSE and NOTICE files.
++[ -f LICENSE ] && [ ! -f LICENSE.txt ] && ln -s LICENSE LICENSE.txt
++[ -f NOTICE ]  && [ ! -f NOTICE.txt ]  && ln -s NOTICE  NOTICE.txt
++
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++
++zipPath=$(find . -path \*build/distributions/*.zip -not -path \*spi\*)
++distributions="$(dirname "${zipPath}")"
++
++echo "COPY ${distributions}/*.zip"
++mkdir -p $OUTPUT/plugins
++cp ${distributions}/*.zip ./$OUTPUT/plugins
++
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/components/k-NN/build.sh b/scripts/components/k-NN/build.sh
+new file mode 100644
+index 00000000..e64a02eb
+--- /dev/null
++++ b/scripts/components/k-NN/build.sh
+@@ -0,0 +1,198 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source license.
++#
++# This script overrides the upstream k-NN build.sh to add ppc64le support.
++# On ppc64le the cmake/JNI native library build is skipped because:
++#   - The upstream CMakeLists.txt has no ppc64le MACH_ARCH mapping
++#   - AVX2/AVX512 SIMD instructions do not exist on ppc64le (VSX/VMX are different ISA)
++#   - The standard CI runner for ppc64le does not install cmake
++# The Java plugin artifact is built normally; the native JNI libs are simply absent.
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-j NPROC_COUNT\t[Optional] Number of CPUs to use when building JNI library. Default is 1."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:j:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        j)
++            NPROC_COUNT=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++work_dir=$PWD
++
++git submodule update --init -- jni/external/nmslib
++git submodule update --init -- jni/external/faiss
++
++if [ "$JAVA_HOME" = "" ]; then
++    export JAVA_HOME=`/usr/libexec/java_home`
++    echo "SET JAVA_HOME=$JAVA_HOME"
++fi
++
++# ppc64le: skip cmake/JNI native library compilation entirely.
++if [ "$ARCHITECTURE" = "ppc64le" ]; then
++    echo "ppc64le detected: skipping JNI native library build (cmake not required)"
++
++    # Build the Java plugin only (no native lib, no integTest, no unit test)
++    ./gradlew --console=plain build --no-daemon --refresh-dependencies -x integTest -x test \
++        -Dopensearch.version=$VERSION \
++        -Dbuild.snapshot=$SNAPSHOT \
++        -Dbuild.version_qualifier=$QUALIFIER \
++        -Dbuild.lib.commit_patches=false
++
++else
++    # x64/arm64: use the full upstream build path
++    cd jni
++
++    if [ "$ARCHITECTURE" = "x64" ]; then
++        NMSLIB_SIMD_FLAGS="x86-64"
++    fi
++
++    if [ "$ARCHITECTURE" = "arm64" ]; then
++        NMSLIB_SIMD_FLAGS="armv8-a"
++    fi
++
++    GCC_VERSION=`gcc --version | head -n 1 | cut -d ' ' -f3`
++    if [ "$ARCHITECTURE" = "x64" ]; then
++        GCC_REQUIRED_VERSION=12.4
++    else
++        GCC_REQUIRED_VERSION=9.0.0
++    fi
++    COMPARE_VERSION=`echo $GCC_REQUIRED_VERSION $GCC_VERSION | tr ' ' '\n' | sort -V | uniq | head -n 1`
++    if [ "$COMPARE_VERSION" != "$GCC_REQUIRED_VERSION" ]; then
++        echo "gcc version on this env is older than $GCC_REQUIRED_VERSION, exit 1"
++        exit 1
++    fi
++
++    cd $work_dir
++    ./gradlew --console=plain build --no-daemon --refresh-dependencies -x integTest -x test -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dbuild.lib.commit_patches=false -Dnmslib_simd_flags=$NMSLIB_SIMD_FLAGS
++    ./gradlew :buildJniLib -Pknn_libs=opensearchknn_faiss,opensearchknn_simd -Davx512.enabled=false -Davx512_spr.enabled=false -Davx2.enabled=false -Dbuild.lib.commit_patches=false -Dnproc.count=${NPROC_COUNT:-1} -Dbuild.snapshot=$SNAPSHOT
++
++    if [ "$PLATFORM" != "windows" ] && [ "$ARCHITECTURE" = "x64" ]; then
++        echo "Building k-NN library nmslib with gcc 10 on non-windows x64"
++        rm -rf jni/build/CMakeCache.txt jni/build/CMakeFiles
++        env CC=gcc10-gcc CXX=gcc10-g++ FC=gcc10-gfortran ./gradlew :buildJniLib -Pknn_libs=opensearchknn_nmslib -Dbuild.lib.commit_patches=false -Dbuild.lib.apply_patches=false -Dbuild.snapshot=$SNAPSHOT
+
++        echo "Building k-NN library after enabling AVX2"
++        rm -rf jni/build/CMakeCache.txt jni/build/CMakeFiles
++        ./gradlew :buildJniLib -Pknn_libs=opensearchknn_faiss,opensearchknn_simd -Davx2.enabled=true -Davx512.enabled=false -Davx512_spr.enabled=false -Dbuild.lib.commit_patches=false -Dbuild.lib.apply_patches=false -Dbuild.snapshot=$SNAPSHOT
++
++        echo "Building k-NN library after enabling AVX512"
++        ./gradlew :buildJniLib -Pknn_libs=opensearchknn_faiss,opensearchknn_simd -Davx512.enabled=true -Davx512_spr.enabled=false -Dbuild.lib.commit_patches=false -Dbuild.lib.apply_patches=false -Dbuild.snapshot=$SNAPSHOT
+
++        echo "Building k-NN library after enabling AVX512_SPR"
++        ./gradlew :buildJniLib -Pknn_libs=opensearchknn_faiss,opensearchknn_simd -Davx512_spr.enabled=true -Dbuild.lib.commit_patches=false -Dbuild.lib.apply_patches=false -Dbuild.snapshot=$SNAPSHOT
++    else
++        ./gradlew :buildJniLib -Pknn_libs=opensearchknn_nmslib -Dbuild.lib.commit_patches=false -Dbuild.lib.apply_patches=false -Dbuild.snapshot=$SNAPSHOT
++    fi
++fi
++
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToMavenLocal -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER -Dopensearch.version=$VERSION
++
++zipPath=$(find "$(pwd)/build/distributions" -path \*.zip)
++distributions="$(dirname "${zipPath}")"
++
++if [ "$ARCHITECTURE" != "ppc64le" ]; then
++    mkdir -p $distributions/lib
++    libPrefix="libopensearchknn"
++    if [ "$PLATFORM" = "windows" ]; then
++        libPrefix="opensearchknn"
++        cp -v ./src/main/resources/windowsDependencies/libopenblas.dll $distributions/lib
++        cp -v "$MINGW_BIN/libgcc_s_seh-1.dll" $distributions/lib
++        cp -v "$MINGW_BIN/libwinpthread-1.dll" $distributions/lib
++        cp -v "$MINGW_BIN/libstdc++-6.dll" $distributions/lib
++        cp -v "$MINGW_BIN/libgomp-1.dll" $distributions/lib
++    else
++        ompPath=$(ldconfig -p | grep libgomp | cut -d ' ' -f 4)
++        cp -v $ompPath $distributions/lib
++    fi
++    cp -v ./jni/build/release/${libPrefix}* $distributions/lib
++    ls -l $distributions/lib
++
++    cd $distributions
++    zip -ur $zipPath lib
++    cd $work_dir
++fi
++
++echo "COPY ${distributions}/*.zip"
++mkdir -p $OUTPUT/plugins
++cp -v ${distributions}/*.zip $OUTPUT/plugins
++
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/components/k-NN/integtest.sh b/scripts/components/k-NN/integtest.sh
+index 9026e924..1bbbd7ea 100755
+--- a/scripts/components/k-NN/integtest.sh
++++ b/scripts/components/k-NN/integtest.sh
+@@ -111,8 +111,8 @@ if [ "$OSTYPE" = "msys" ] || [ "$OSTYPE" = "cygwin" ] || [ "$OSTYPE" = "win32" ]
+     echo "Set new tests.path.repo to $REPO_PATH"
+     sed -i 's|^[[:space:]]\+task\.systemProperty\s*"tests\.path\.repo".*|    task.systemProperty "tests.path.repo", System.getProperty("tests.path.repo", "${buildDir}/testSnapshotFolder")|' build.gradle
+     sed -i 's|^[[:space:]]\+systemProperty\s*"tests\.path\.repo".*|    systemProperty "tests.path.repo", System.getProperty("tests.path.repo", "${buildDir}/testSnapshotFolder")|' build.gradle
+-    ./gradlew integTest -Dtests.path.repo="$REPO_PATH" -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
++    ./gradlew --console=plain integTest -Dtests.path.repo="$REPO_PATH" -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+ 
+ else
+-    ./gradlew integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
++    ./gradlew --console=plain integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+ fi
+
+diff --git a/scripts/components/notifications-core/build.sh b/scripts/components/notifications-core/build.sh
+index 545661b4..177c56a5 100644
+--- a/scripts/components/notifications-core/build.sh
++++ b/scripts/components/notifications-core/build.sh
+@@ -68,13 +68,13 @@ fi
+ [[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
+ [ -z "$OUTPUT" ] && OUTPUT=artifacts
+ 
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ mkdir -p ./$OUTPUT/plugins
+ notifCoreZipPath=$(ls core/build/distributions/ | grep .zip)
+ cp -v core/build/distributions/$notifCoreZipPath ./$OUTPUT/plugins
+ 
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ mkdir -p $OUTPUT/maven/org/opensearch/plugin
+ cp -r ./build/local-staging-repo/org/opensearch/plugin/opensearch-notifications-core $OUTPUT/maven/org/opensearch/plugin/
+
+diff --git a/scripts/components/notifications/build.sh b/scripts/components/notifications/build.sh
+index c67f99d5..cbf6b488 100644
+--- a/scripts/components/notifications/build.sh
++++ b/scripts/components/notifications/build.sh
+@@ -68,14 +68,14 @@ fi
+ [[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
+ [ -z "$OUTPUT" ] && OUTPUT=artifacts
+ 
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishToMavenLocal -PexcludeTests="**/SesChannelIT*" -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ mkdir -p ./$OUTPUT/plugins
+ 
+ notifCoreZipPath=$(ls notifications/build/distributions/ | grep .zip)
+ cp -v notifications/build/distributions/$notifCoreZipPath ./$OUTPUT/plugins
+ 
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ mkdir -p $OUTPUT/maven/org/opensearch/plugin
+ cp -r ./build/local-staging-repo/org/opensearch/plugin/notifications $OUTPUT/maven/org/opensearch/plugin/
+
+diff --git a/scripts/components/opensearch-observability/build.sh b/scripts/components/opensearch-observability/build.sh
+new file mode 100755
+index 00000000..43325b9f
+--- /dev/null
++++ b/scripts/components/opensearch-observability/build.sh
+@@ -0,0 +1,94 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source source license.
++#
++# opensearch-observability ships LICENSE and NOTICE without a .txt extension,
++# but OpenSearch 3.x build-tools opensearchplugin validation requires LICENSE.txt
++# and NOTICE.txt. Create symlinks before invoking Gradle so the validator passes.
++# Ref: https://github.com/opensearch-project/observability/blob/3.5.0.0/build.gradle
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture, ignored."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++mkdir -p $OUTPUT
++
++# OpenSearch 3.x build-tools requires LICENSE.txt and NOTICE.txt.
++# The repository only has extensionless LICENSE and NOTICE files.
++[ -f LICENSE ] && [ ! -f LICENSE.txt ] && ln -s LICENSE LICENSE.txt
++[ -f NOTICE ]  && [ ! -f NOTICE.txt ]  && ln -s NOTICE  NOTICE.txt
++
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++
++zipPath=$(find . -path \*build/distributions/*.zip)
++distributions="$(dirname "${zipPath}")"
++
++echo "COPY ${distributions}/*.zip"
++mkdir -p $OUTPUT/plugins
++cp ${distributions}/*.zip ./$OUTPUT/plugins
++
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/components/opensearch-reports/build.sh b/scripts/components/opensearch-reports/build.sh
+new file mode 100755
+index 00000000..85c8aec1
+--- /dev/null
++++ b/scripts/components/opensearch-reports/build.sh
+@@ -0,0 +1,93 @@
++#!/bin/bash
++
++# Copyright OpenSearch Contributors
++# SPDX-License-Identifier: Apache-2.0
++#
++# The OpenSearch Contributors require contributions made to
++# this file be licensed under the Apache-2.0 license or a
++# compatible open source source license.
++#
++# opensearch-reports (reporting) ships LICENSE without a .txt extension,
++# but OpenSearch 3.x build-tools opensearchplugin validation requires LICENSE.txt.
++# Create a symlink before invoking Gradle so the validator passes.
++# Ref: https://github.com/opensearch-project/reporting/blob/3.5.0.0/build.gradle
++
++set -ex
++
++function usage() {
++    echo "Usage: $0 [args]"
++    echo ""
++    echo "Arguments:"
++    echo -e "-v VERSION\t[Required] OpenSearch version."
++    echo -e "-q QUALIFIER\t[Optional] Version qualifier."
++    echo -e "-s SNAPSHOT\t[Optional] Build a snapshot, default is 'false'."
++    echo -e "-p PLATFORM\t[Optional] Platform, ignored."
++    echo -e "-a ARCHITECTURE\t[Optional] Build architecture, ignored."
++    echo -e "-o OUTPUT\t[Optional] Output path, default is 'artifacts'."
++    echo -e "-h help"
++}
++
++while getopts ":h:v:q:s:o:p:a:" arg; do
++    case $arg in
++        h)
++            usage
++            exit 1
++            ;;
++        v)
++            VERSION=$OPTARG
++            ;;
++        q)
++            QUALIFIER=$OPTARG
++            ;;
++        s)
++            SNAPSHOT=$OPTARG
++            ;;
++        o)
++            OUTPUT=$OPTARG
++            ;;
++        p)
++            PLATFORM=$OPTARG
++            ;;
++        a)
++            ARCHITECTURE=$OPTARG
++            ;;
++        :)
++            echo "Error: -${OPTARG} requires an argument"
++            usage
++            exit 1
++            ;;
++        ?)
++            echo "Invalid option: -${arg}"
++            exit 1
++            ;;
++    esac
++done
++
++if [ -z "$VERSION" ]; then
++    echo "Error: You must specify the OpenSearch version"
++    usage
++    exit 1
++fi
++
++[[ ! -z "$QUALIFIER" ]] && VERSION=$VERSION-$QUALIFIER
++[[ "$SNAPSHOT" == "true" ]] && VERSION=$VERSION-SNAPSHOT
++[ -z "$OUTPUT" ] && OUTPUT=artifacts
++
++mkdir -p $OUTPUT
++
++# OpenSearch 3.x build-tools requires LICENSE.txt.
++# The repository ships LICENSE (no extension) but NOTICE.txt already exists.
++[ -f LICENSE ] && [ ! -f LICENSE.txt ] && ln -s LICENSE LICENSE.txt
++
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++
++zipPath=$(find . -path \*build/distributions/*.zip)
++distributions="$(dirname "${zipPath}")"
++
++echo "COPY ${distributions}/*.zip"
++mkdir -p $OUTPUT/plugins
++cp ${distributions}/*.zip ./$OUTPUT/plugins
++
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++mkdir -p $OUTPUT/maven/org/opensearch
++cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/scripts/default/bwctest.sh b/scripts/default/bwctest.sh
+index d1f687f5..3c860036 100755
+--- a/scripts/default/bwctest.sh
++++ b/scripts/default/bwctest.sh
+@@ -35,4 +35,4 @@ while getopts ":h" arg; do
+     esac
+ done
+ 
+-./gradlew bwcTestSuite -Dtests.security.manager=false -PcustomDistributionDownloadType=bundle
++./gradlew --console=plain bwcTestSuite -Dtests.security.manager=false -PcustomDistributionDownloadType=bundle
+
+diff --git a/scripts/default/integtest.sh b/scripts/default/integtest.sh
+index 7a600d4c..17cfe1f2 100755
+--- a/scripts/default/integtest.sh
++++ b/scripts/default/integtest.sh
+@@ -102,4 +102,4 @@ fi
+ USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
+ PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
+ 
+-./gradlew integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
++./gradlew --console=plain integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+
+diff --git a/scripts/default/opensearch/build.sh b/scripts/default/opensearch/build.sh
+index b585940d..ea049ea8 100755
+--- a/scripts/default/opensearch/build.sh
++++ b/scripts/default/opensearch/build.sh
+@@ -70,7 +70,7 @@ fi
+ 
+ mkdir -p $OUTPUT
+ 
+-./gradlew assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain assemble --no-daemon --refresh-dependencies -DskipTests=true -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ 
+ zipPath=$(find . -path \*build/distributions/*.zip)
+ distributions="$(dirname "${zipPath}")"
+@@ -80,7 +80,7 @@ mkdir -p $OUTPUT/plugins
+ cp ${distributions}/*.zip ./$OUTPUT/plugins
+ 
+ # Publish plugin zips to maven
+-./gradlew publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+-./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToMavenLocal -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
++./gradlew --console=plain publishPluginZipPublicationToZipStagingRepository -Dopensearch.version=$VERSION -Dbuild.snapshot=$SNAPSHOT -Dbuild.version_qualifier=$QUALIFIER
+ mkdir -p $OUTPUT/maven/org/opensearch
+ cp -r ./build/local-staging-repo/org/opensearch/. $OUTPUT/maven/org/opensearch
+
+diff --git a/src/assemble_workflow/bundle_opensearch.py b/src/assemble_workflow/bundle_opensearch.py
+index e9141f82..d859d7a1 100644
+--- a/src/assemble_workflow/bundle_opensearch.py
++++ b/src/assemble_workflow/bundle_opensearch.py
+@@ -5,6 +5,8 @@
+ # this file be licensed under the Apache-2.0 license or a
+ # compatible open source license.
+ 
++import glob
++import logging
+ import os
+ from pathlib import Path
+ 
+@@ -14,6 +16,36 @@ from system.os import current_platform
+ 
+ 
+ class BundleOpenSearch(Bundle):
++    def __init__(self, *args, **kwargs):
++        super().__init__(*args, **kwargs)
++        # Remove FIPS jars after extraction to prevent jar hell
++        self._remove_bc_fips_jars()
++
++    def _remove_bc_fips_jars(self) -> None:
++        """
++        Remove BouncyCastle FIPS jars from extracted OpenSearch distribution.
++        This prevents jar hell when installing plugins that also bundle BouncyCastle.
++        """
++        lib_dir = os.path.join(self.min_dist.archive_path, "lib")
++
++        if not os.path.exists(lib_dir):
++            logging.warning(f"lib directory not found at {lib_dir}, skipping FIPS jar removal")
++            return
++
++        fips_patterns = [
++            "bc-fips-*.jar",
++            "bcpkix-fips-*.jar",
++            "bcutil-fips-*.jar",
++            "bctls-fips-*.jar",
++            "bcpg-fips-*.jar"
++        ]
++
++        for pattern in fips_patterns:
++            for jar_file in glob.glob(os.path.join(lib_dir, pattern)):
++                logging.info(f"Removing FIPS jar to prevent jar hell: {jar_file}")
++                os.remove(jar_file)
++                logging.info(f"Successfully removed: {os.path.basename(jar_file)}")
++
+     @property
+     def install_plugin_script(self) -> str:
+         return "opensearch-plugin.bat" if current_platform() == "windows" else "opensearch-plugin"
+
+diff --git a/src/build_workflow/build_args.py b/src/build_workflow/build_args.py
+index 1ad26503..76b86e0a 100644
+--- a/src/build_workflow/build_args.py
++++ b/src/build_workflow/build_args.py
+@@ -16,6 +16,7 @@ class BuildArgs:
+     SUPPORTED_ARCHITECTURES = [
+         "x64",
+         "arm64",
++        "ppc64le",
+     ]
+     SUPPORTED_DISTRIBUTIONS = ["tar", "zip", "rpm", "deb"]
+ 
+diff --git a/src/build_workflow/builder_from_source.py b/src/build_workflow/builder_from_source.py
+index 53c47bbb..96141a69 100644
+--- a/src/build_workflow/builder_from_source.py
++++ b/src/build_workflow/builder_from_source.py
+@@ -5,6 +5,8 @@
+ # this file be licensed under the Apache-2.0 license or a
+ # compatible open source license.
+ 
++import glob
++import logging
+ import os
+ 
+ from build_workflow.build_recorder import BuildRecorder
+@@ -17,7 +19,9 @@ This class is responsible for executing the build for a component and passing th
+ It will notify the build recorder of build information such as repository and git ref, and any artifacts generated by the build.
+ Artifacts found in "<build root>/artifacts/<maven|plugins|libs|dist|core-plugins>" will be recognized and recorded.
+ """
+-
++OPENSEARCH_PATCH_FILE = os.path.join(os.getcwd(), "opensearch.patch")
++SECURITY_PATCH_FILE = os.path.join(os.getcwd(), "security.patch")
++COMMON_UTILS_PATCH_FILE = os.path.join(os.getcwd(), "common-utils.patch")
+ 
+ class BuilderFromSource(Builder):
+     def checkout(self, work_dir: str) -> None:
+@@ -28,6 +32,106 @@ class BuilderFromSource(Builder):
+             self.component.working_directory,
+         )
+ 
++        # Apply OpenSearch core patch (opensearch.patch) if building OpenSearch
++        if self.component.name == "OpenSearch":
++            if os.path.isfile(OPENSEARCH_PATCH_FILE):
++                logging.info(f"Applying patch {OPENSEARCH_PATCH_FILE} to {self.component.name}")
++                self.git_repo.execute(f"git apply {OPENSEARCH_PATCH_FILE}")
++                logging.info(f"Successfully applied patch to {self.component.name}")
++            else:
++                logging.warning(f"Patch file not found: {OPENSEARCH_PATCH_FILE}")
++
++        # Apply Security plugin patch (security.patch) if building security plugin
++        if self.component.name == "security":
++            if os.path.isfile(SECURITY_PATCH_FILE):
++                logging.info(f"Applying patch {SECURITY_PATCH_FILE} to {self.component.name}")
++                self.git_repo.execute(f"git apply {SECURITY_PATCH_FILE}")
++                logging.info(f"Successfully applied patch to {self.component.name}")
++            else:
++                logging.warning(f"Patch file not found: {SECURITY_PATCH_FILE}")
++
++        # Apply common-utils patch (common-utils.patch) if building common-utils
++        if self.component.name == "common-utils":
++            if os.path.isfile(COMMON_UTILS_PATCH_FILE):
++                logging.info(f"Applying patch {COMMON_UTILS_PATCH_FILE} to {self.component.name}")
++                self.git_repo.execute(f"git apply {COMMON_UTILS_PATCH_FILE}")
++                logging.info(f"Successfully applied patch to {self.component.name}")
++            else:
++                logging.warning(f"Patch file not found: {COMMON_UTILS_PATCH_FILE}")
++
++        # Apply LTR patch (ltr.patch) if building opensearch-learning-to-rank-base
++        if self.component.name == "opensearch-learning-to-rank-base":
++            ltr_patch_file = os.path.join(os.getcwd(), "ltr.patch")
++            if os.path.isfile(ltr_patch_file):
++                logging.info(f"Applying patch {ltr_patch_file} to {self.component.name}")
++                self.git_repo.execute(f"git apply {ltr_patch_file}")
++                logging.info(f"Successfully applied patch to {self.component.name}")
++            else:
++                logging.warning(f"Patch file not found: {ltr_patch_file}")
++
++        # On ppc64le, disable Gradle's native platform library which causes an
++        # UnsupportedOperationException in TestClustersPlugin on older build-tools versions
++        if self.target.architecture == "ppc64le":
++            self._apply_ppc64le_gradle_fix()
++
++    def _apply_ppc64le_gradle_fix(self) -> None:
++        """
++        Apply ppc64le architecture fix for Gradle builds.
++        Creates gradle.properties to disable native platform support which doesn't work on ppc64le.
++        """
++        gradle_properties_path = os.path.join(self.git_repo.working_directory, "gradle.properties")
++
++        # Check if this is a Gradle project (has gradlew or build.gradle)
++        has_gradlew = os.path.isfile(os.path.join(self.git_repo.working_directory, "gradlew"))
++        has_build_gradle = os.path.isfile(os.path.join(self.git_repo.working_directory, "build.gradle"))
++
++        if not (has_gradlew or has_build_gradle):
++            logging.debug(f"Skipping ppc64le Gradle fix for {self.component.name} - not a Gradle project")
++            return
++
++        gradle_properties_content = """# Disable native platform support for ppc64le architecture compatibility
++# The native-platform library doesn't support ppc64le, so we fall back to pure Java implementations
++org.gradle.native=false
++# Use plain console output (no rich formatting that requires native platform)
++org.gradle.console=plain
++"""
++
++        # If gradle.properties already exists, append our settings
++        if os.path.isfile(gradle_properties_path):
++            logging.info(f"Appending ppc64le fix to existing gradle.properties for {self.component.name}")
++            with open(gradle_properties_path, 'a') as f:
++                f.write("\n" + gradle_properties_content)
++        else:
++            logging.info(f"Creating gradle.properties with ppc64le fix for {self.component.name}")
++            with open(gradle_properties_path, 'w') as f:
++                f.write(gradle_properties_content)
++
++    def _remove_bc_fips_from_distribution(self) -> None:
++        """
++        Remove BouncyCastle FIPS jars from OpenSearch distribution to prevent jar hell.
++        This runs after OpenSearch builds but before plugins are installed.
++        """
++        if self.component.name != "OpenSearch":
++            return
++
++        dist_dirs = [
++            os.path.join(self.git_repo.working_directory, "distribution/archives/linux-tar/build/install"),
++            os.path.join(self.git_repo.working_directory, "distribution/archives/darwin-tar/build/install"),
++        ]
++
++        for dist_dir in dist_dirs:
++            if os.path.exists(dist_dir):
++                for opensearch_dir in glob.glob(os.path.join(dist_dir, "opensearch-*")):
++                    lib_dir = os.path.join(opensearch_dir, "lib")
++                    if os.path.exists(lib_dir):
++                        fips_patterns = [
++                            "bc-fips-*.jar",
++                            "bcpkix-fips-*.jar",
++                            "bcutil-fips-*.jar",
++                            "bctls-fips-*.jar",
++                            "bcpg-fips-*.jar"
++                        ]
++                        for pattern in fips_patterns:
++                            for jar_file in glob.glob(os.path.join(lib_dir, pattern)):
++                                logging.info(f"Removing FIPS jar to prevent jar hell: {jar_file}")
++                                os.remove(jar_file)
++                                logging.info(f"Successfully removed: {os.path.basename(jar_file)}")
++
+     def build(self, build_recorder: BuildRecorder) -> None:
+ 
+         # List of components whose build scripts support `-d` parameter
+@@ -36,10 +140,15 @@ class BuilderFromSource(Builder):
+ 
+         build_script = ScriptFinder.find_build_script(self.target.name, self.component.name, self.git_repo.working_directory)
+ 
++        # Limit Gradle worker threads for all plugin components to avoid EAGAIN thread exhaustion
++        is_plugin = self.component.name not in DISTRIBUTION_SUPPORTED_COMPONENTS
++        gradle_opts_prefix = "GRADLE_OPTS=\"${GRADLE_OPTS} -Dorg.gradle.workers.max=4\"" if is_plugin else None
++
+         build_command = " ".join(
+             filter(
+                 None,
+                 [
++                    gradle_opts_prefix,
+                     "bash",
+                     build_script,
+                     f"-v {self.target.version}",
+@@ -54,6 +163,9 @@ class BuilderFromSource(Builder):
+         )
+ 
+         self.git_repo.execute(build_command)
++        # Remove FIPS jars after OpenSearch build completes but before plugins are installed
++        if self.component.name == "OpenSearch":
++            self._remove_bc_fips_from_distribution()
+         build_recorder.record_component(self.component.name, self.git_repo)
+ 
+     def export_artifacts(self, build_recorder: BuildRecorder) -> None:
+
+diff --git a/src/ci_workflow/ci_check_gradle_dependencies.py b/src/ci_workflow/ci_check_gradle_dependencies.py
+index 5295b85c..b4e1949a 100644
+--- a/src/ci_workflow/ci_check_gradle_dependencies.py
++++ b/src/ci_workflow/ci_check_gradle_dependencies.py
+@@ -27,7 +27,7 @@ class CiCheckGradleDependencies(CiCheckSource):
+             filter(
+                 None,
+                 [
+-                    f"./gradlew {self.gradle_project or ''}:dependencies",
++                    f"./gradlew --console=plain {self.gradle_project or ''}:dependencies",
+                     f"-Dopensearch.version={self.target.opensearch_version}",
+                     f"-Dbuild.snapshot={str(self.target.snapshot).lower()}",
+                     f"-Dbuild.version_qualifier={str(self.target.qualifier)}" if self.target.qualifier else None,
+
+diff --git a/src/ci_workflow/ci_check_gradle_properties.py b/src/ci_workflow/ci_check_gradle_properties.py
+index 4eb073c7..19bb99b1 100644
+--- a/src/ci_workflow/ci_check_gradle_properties.py
++++ b/src/ci_workflow/ci_check_gradle_properties.py
+@@ -24,7 +24,7 @@ class CiCheckGradleProperties(CiCheckSource):
+             filter(
+                 None,
+                 [
+-                    "./gradlew properties",
++                    "./gradlew --console=plain properties",
+                     f"-Dopensearch.version={self.target.opensearch_version}",
+                     f"-Dbuild.snapshot={str(self.target.snapshot).lower()}",
+                     f"-Dbuild.version_qualifier={str(self.target.qualifier)}" if self.target.qualifier else None,
+
+diff --git a/src/ci_workflow/ci_check_gradle_publish_to_maven_local.py b/src/ci_workflow/ci_check_gradle_publish_to_maven_local.py
+index dfdc6fab..2ba2e07b 100644
+--- a/src/ci_workflow/ci_check_gradle_publish_to_maven_local.py
++++ b/src/ci_workflow/ci_check_gradle_publish_to_maven_local.py
+@@ -14,7 +14,7 @@ class CiCheckGradlePublishToMavenLocal(CiCheckSource):
+             filter(
+                 None,
+                 [
+-                    "./gradlew publishToMavenLocal",
++                    "./gradlew --console=plain publishToMavenLocal",
+                     f"-Dopensearch.version={self.target.opensearch_version}",
+                     f"-Dbuild.snapshot={str(self.target.snapshot).lower()}",
+                     f"-Dbuild.version_qualifier={str(self.target.qualifier)}" if self.target.qualifier else None,
+
+diff --git a/src/manifests_workflow/README.md b/src/manifests_workflow/README.md
+index 8d4a635a..0204c4da 100644
+--- a/src/manifests_workflow/README.md
++++ b/src/manifests_workflow/README.md
+@@ -2,7 +2,7 @@
+ 
+ ## Auto-Generating Manifests
+ 
+-This workflow reacts to version increments in OpenSearch and its components by extracting Gradle properties from project branches. Currently OpenSearch `main`, and `x.y` branches are checked out one-by-one, published to local maven, and their versions extracted using `./gradlew properties`. When a new version is found, a new input manifest is added to [manifests](../../manifests), and [a pull request is opened](../../.github/workflows/manifests.yml) (e.g. [opensearch-build#491](https://github.com/opensearch-project/opensearch-build/pull/491)).
++This workflow reacts to version increments in OpenSearch and its components by extracting Gradle properties from project branches. Currently OpenSearch `main`, and `x.y` branches are checked out one-by-one, published to local maven, and their versions extracted using `./gradlew --console=plain properties`. When a new version is found, a new input manifest is added to [manifests](../../manifests), and [a pull request is opened](../../.github/workflows/manifests.yml) (e.g. [opensearch-build#491](https://github.com/opensearch-project/opensearch-build/pull/491)).
+ 
+ ### Show information about existing manifests
+ 
+diff --git a/src/manifests_workflow/component_opensearch.py b/src/manifests_workflow/component_opensearch.py
+index c382e106..71d5e2af 100644
+--- a/src/manifests_workflow/component_opensearch.py
++++ b/src/manifests_workflow/component_opensearch.py
+@@ -64,6 +64,6 @@ class ComponentOpenSearch(Component):
+ 
+     @classmethod
+     def gradle_cmd(self, target: str, props: dict = {}) -> str:
+-        cmd = [f"./gradlew {target}"]
++        cmd = [f"./gradlew --console=plain {target}"]
+         cmd.extend([f"-D{k}={v}" for k, v in props.items()])
+         return " ".join(cmd)
