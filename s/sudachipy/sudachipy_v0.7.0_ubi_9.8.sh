@@ -22,7 +22,7 @@ set -ex
 
 # Variables
 PACKAGE_NAME=SudachiPy
-PACKAGE_VERSION=${1:-v0.7.0}
+PACKAGE_VERSION=${1:-v0.6.11}
 PACKAGE_URL=https://github.com/WorksApplications/sudachi.rs
 PACKAGE_DIR=sudachi.rs
 WORKDIR=$(pwd)
