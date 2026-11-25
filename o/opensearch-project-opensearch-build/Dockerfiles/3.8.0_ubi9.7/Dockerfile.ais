@@ -151,9 +151,8 @@ RUN microdnf upgrade -y curl-minimal libcurl-minimal || true && \
     microdnf clean all
 
 # Point JAVA_HOME and PATH to the system installed OpenJDK.
-# The bundled JDK (/usr/share/opensearch/jdk, 25.0.4) is removed in Stage 0 because it carries
-# unpatched JDK CVEs (fixed in 25.0.5.1+); opensearch-env falls back to JAVA_HOME when jdk/ is absent.
-# microdnf installs the newest java-25-openjdk-headless that UBI9 publishes.
+# The bundled JDK in $OPENSEARCH_HOME/jdk (bumped to 25.0.5.1+2 via ppc64le-3.8.0-ai-services.patch)
+# is what opensearch-env uses first; JAVA_HOME is the fallback.
 # java-25-openjdk-headless provides /usr/lib/jvm/jre-25-openjdk on UBI9
 ENV JAVA_HOME=/usr/lib/jvm/jre-25-openjdk
 ENV PATH=$OPENSEARCH_HOME/bin:$JAVA_HOME/bin:$PATH

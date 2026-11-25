@@ -232,7 +232,22 @@ new file mode 100644
 index 00000000..5b237659
 --- /dev/null
 +++ b/opensearch.patch
-@@ -0,0 +1,698 @@
+@@ -0,0 +1,713 @@
++diff --git a/buildSrc/src/main/java/org/opensearch/gradle/JavaVariant.java b/buildSrc/src/main/java/org/opensearch/gradle/JavaVariant.java
++index 0fb217b4831..c9979971cba 100644
++--- a/buildSrc/src/main/java/org/opensearch/gradle/JavaVariant.java
+++++ b/buildSrc/src/main/java/org/opensearch/gradle/JavaVariant.java
++@@ -31,7 +31,9 @@ abstract class JavaVariant implements Buildable, Iterable<File> {
++     private static final List<String> ALLOWED_PLATFORMS = Collections.unmodifiableList(
++         Arrays.asList("darwin", "freebsd", "linux", "mac", "windows")
++     );
++-    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
+++    private static final Pattern VERSION_PATTERN = Pattern.compile(
+++        "(\\d+)(\\.\\d+\\.\\d+(?:\\.\\d+)?)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?"
+++    );
++     private static final Pattern LEGACY_VERSION_PATTERN = Pattern.compile("(\\d)(u\\d+)(?:\\+|\\-)(b\\d+?)(@([a-f0-9]{32}))?");
++ 
++     private final String name;
 +diff --git a/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java b/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java
 +index baeaeb72b24..c814ec9a177 100644
 +--- a/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java
